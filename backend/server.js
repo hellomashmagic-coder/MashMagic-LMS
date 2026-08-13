@@ -14,11 +14,25 @@ const studentRoutes = require('./routes/studentRoutes');
 const app = express();
 const deleteProtection = require('./middleware/deleteProtection');
 
+const { protect, authorize } = require('./middleware/authMiddleware');
+
 // Middleware
 app.use(deleteProtection);
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -46,7 +60,7 @@ app.get('/', (req, res) => {
     res.json({ message: "Welcome to MashMagic Edu Tech API v2 - Permissions Fixed" });
 });
 
-app.post('/api/fix-demos-now', async (req, res) => {
+app.post('/api/fix-demos-now', protect, authorize('super_admin'), async (req, res) => {
     try {
         const [demos] = await pool.query('SELECT id, demo_id FROM aoe_demo_schedules ORDER BY created_at ASC');
         for (let i = 0; i < demos.length; i++) {

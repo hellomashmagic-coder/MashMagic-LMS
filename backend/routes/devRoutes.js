@@ -3,8 +3,9 @@ const router = express.Router();
 const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.get('/run-audit', async (req, res) => {
+router.get('/run-audit', protect, authorize('super_admin'), async (req, res) => {
     try {
         console.log("Starting DB Audit via API...");
         const [students] = await db.query('SELECT * FROM students');
