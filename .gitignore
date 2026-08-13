@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Build directories
+dist/
+build/
+out/
+
+# IDE & Editor folders
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local Node binaries & archives
+node-v*/
+*.tgz
+*.tar.gz
+
+# Temporary & Audit Reports
+student_audit_report.json
+all_list_pages.txt
+paginated_pages.txt
+

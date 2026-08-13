@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/jpeg" href="/mashmagic logo.jpg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&family=Poppins:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <title>MashMagic-LMS-Dashboard</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Disable Refresh and Zoom Shortcuts
+      window.addEventListener('keydown', function (e) {
+          if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+              e.preventDefault();
+          }
+      }, { passive: false });
+
+      // Disable Mouse Wheel Zoom
+      window.addEventListener('wheel', function (e) {
+          if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+          }
+      }, { passive: false });
+
+      // Disable Double Tap Zoom (Mobile)
+      document.addEventListener('touchstart', function (event) {
+          if (event.touches.length > 1) {
+              event.preventDefault();
+          }
+      }, { passive: false });
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+:root {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Global Poppins for main UI */
+body, h1, h2, h3, h4, h5, h6, .font-black, .font-bold, p, span, label, input, select, textarea, small {
+  font-family: 'Poppins', sans-serif !important;
+}
+
+input[type="text"], input[type="email"], input[type="password"], input[type="tel"], textarea {
+  cursor: text !important;
+}
+
+/* Specific subtext classes */
+.text-slate-500, .text-slate-400, .text-slate-300 {
+  font-family: 'Poppins', sans-serif !important;
+}
+
+/* Improve readability only inside light/white surfaces */
+main .bg-white .text-slate-500,
+main .bg-white .text-slate-400,
+main .bg-white .text-slate-300,
+main .bg-white .text-gray-500,
+main .bg-white .text-gray-400,
+main .bg-slate-50 .text-slate-500,
+main .bg-slate-50 .text-slate-400,
+main .bg-slate-50 .text-slate-300,
+main .bg-slate-50 .text-gray-500,
+main .bg-slate-50 .text-gray-400 {
+  color: #0f172a !important;
+}
+
+/* Hide scrollbars globally (keep scrolling enabled) */
+html,
+body {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  display: none;
+}
+
+@keyframes enter {
+  from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes leave {
+  from { transform: scale(1) translateY(0); opacity: 1; }
+  to { transform: scale(0.9) translateY(-20px); opacity: 0; }
+}
+.animate-enter { animation: enter 0.2s ease-out; }
+.animate-leave { animation: leave 0.15s ease-in forwards; }
+
+/* Hide scrollbars for all scroll containers */
+* {
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+body {
+  background: #f8fafc;
+  position: relative;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  font-family: 'Poppins', sans-serif;
+  color: #1e293b;
+}
+
+/* cinematic teal streak - left */
+body::before {
+  content: "";
+  position: fixed;
+  width: 120vw;
+  height: 120vh;
+  background: radial-gradient(circle at 0% 0%, rgba(0,128,128,0.12) 0%, transparent 80%);
+  top: -20%;
+  left: -20%;
+  filter: blur(140px);
+  z-index: -1;
+  pointer-events: none;
+  animation: float-teal 18s infinite alternate ease-in-out;
+}
+
+/* cinematic yellow streak - right */
+body::after {
+  content: "";
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 100% 100%, rgba(245,158,黃,0.08) 0%, transparent 80%);
+  bottom: -20%;
+  right: -20%;
+  filter: blur(140px);
+  z-index: -1;
+  pointer-events: none;
+  animation: float-yellow 22s infinite alternate ease-in-out;
+}
+
+@keyframes float-teal {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(150px, 80px) rotate(5deg); }
+}
+
+@keyframes float-yellow {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-150px, -80px) rotate(-5deg); }
+}
+
+/* Glassmorphism utility - Matches Reference */
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(50px) saturate(200%);
+  -webkit-backdrop-filter: blur(50px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.04);
+}
+
+/* Clean, modern typography */
+.italic-header {
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+
+/* Hidden scrollbars for clean UI */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Payment Alerts */
+@keyframes pulse-yellow {
+  0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); border-color: rgba(234, 179, 8, 0.8); }
+  70% { box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); border-color: rgba(234, 179, 8, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); border-color: rgba(234, 179, 8, 0.8); }
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 1); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 1); }
+}
+
+.payment-alert-warning {
+  animation: pulse-yellow 2s infinite;
+  border-width: 2px !important;
+  background-color: rgba(254, 252, 232, 0.5) !important;
+}
+
+.payment-alert-critical {
+  animation: pulse-red 1.5s infinite;
+  border-width: 2px !important;
+  background-color: rgba(254, 242, 242, 0.7) !important;
+}
