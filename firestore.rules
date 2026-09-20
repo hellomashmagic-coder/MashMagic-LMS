@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'admin@mashmagic.com' ||
+        request.auth.token.role == 'SUPER_ADMIN' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN')
+      );
+    }
+    
+    function isAcademicHead() {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        request.auth.token.email == 'head@mashmagic.com' ||
+        request.auth.uid == 'g5jqapW5MCXRGHpEMjbdoEiM2Hl1' ||
+        request.auth.token.role == 'ACADEMIC_HEAD' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ACADEMIC_HEAD')
+      );
+    }
+
+    // Institution & Admin System Configurations
+    match /institutions/{instId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /adminSettings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /formConfigurations/{formId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isAcademicHead() || isSuperAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAcademicHead() || isSuperAdmin());
+      allow create, update, delete: if isAcademicHead() || isSuperAdmin();
+    }
+
+    // Faculty directory
+    match /faculties/{facultyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAcademicHead() || isSuperAdmin();
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      allow read, write: if isAcademicHead() || isSuperAdmin();
+      allow read, update: if isAuthenticated() && (
+        resource.data.assignedSSCId == request.auth.uid ||
+        resource.data.sscId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.assignedSSCId == request.auth.uid ||
+        request.resource.data.sscId == request.auth.uid
+      );
+    }
+
+    // Weekly timetables
+    match /weeklyTimetables/{timetableId} {
+      allow read, write: if isAcademicHead() || isSuperAdmin();
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.assignedSSCId == request.auth.uid ||
+        request.resource.data.assignedSSCId == request.auth.uid
+      );
+    }
+
+    // Class occurrences
+    match /classOccurrences/{classId} {
+      allow read, write: if isAcademicHead() || isSuperAdmin();
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.assignedSSCId == request.auth.uid ||
+        request.resource.data.assignedSSCId == request.auth.uid
+      );
+    }
+
+    // Session wrap-ups (Faculty token access: scoped to existing wrapup report update)
+    match /sessionWrapups/{tokenId} {
+      allow get: if true;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wrapupStatus', 'classStatus', 'actualMinutes', 'topicsCovered', 'studentEngagement', 'homeworkAssigned', 'notes', 'submittedAt', 'updatedAt']);
+      allow read, write: if isAuthenticated();
+    }
+
+    // Assessments
+    match /assessments/{assessmentId} {
+      allow read, write: if isAcademicHead() || isSuperAdmin();
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.assignedSSCId == request.auth.uid ||
+        request.resource.data.assignedSSCId == request.auth.uid
+      );
+    }
+
+    // Follow-ups
+    match /followups/{followupId} {
+      allow read, write: if isAcademicHead() || isSuperAdmin();
+      allow read, write: if isAuthenticated() && (
+        resource == null ||
+        resource.data.assignedSSCId == request.auth.uid ||
+        request.resource.data.assignedSSCId == request.auth.uid
+      );
+    }
+
+    // Packages & Activity Logs
+    match /packages/{packageId} {
+      allow read: if isAuthenticated();
+      allow write: if isAcademicHead() || isSuperAdmin();
+    }
+
+    match /activityLogs/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
