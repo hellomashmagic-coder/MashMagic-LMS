@@ -657,48 +657,48 @@
             </div>
           </div>
 
-          <!-- TOP LEVEL OPERATIONAL SUMMARY CHIPS (6 CHIPS) -->
-          <div class="stat-chip-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-            <div class="stat-chip" style="cursor: pointer;" onclick="navigateTo('students')">
-              <div class="stat-chip-icon">🎓</div>
-              <div class="stat-chip-content">
-                <span class="stat-chip-val" id="head-stat-active-students">0</span>
-                <span class="stat-chip-lbl">Active Students</span>
+          <!-- TOP LEVEL OPERATIONAL SUMMARY CHIPS (6 KPI CARDS) -->
+          <div class="kpi-grid">
+            <div class="kpi-card" onclick="navigateTo('students')">
+              <div class="kpi-icon">🎓</div>
+              <div class="kpi-details">
+                <span class="kpi-label">Active Students</span>
+                <h2 class="kpi-value" id="head-stat-active-students">0</h2>
               </div>
             </div>
-            <div class="stat-chip" style="cursor: pointer;" onclick="navigateTo('students')">
-              <div class="stat-chip-icon">✨</div>
-              <div class="stat-chip-content">
-                <span class="stat-chip-val" id="head-stat-new-students">0</span>
-                <span class="stat-chip-lbl">New Registered</span>
+            <div class="kpi-card" onclick="navigateTo('students')">
+              <div class="kpi-icon">✨</div>
+              <div class="kpi-details">
+                <span class="kpi-label">New Registered</span>
+                <h2 class="kpi-value" id="head-stat-new-students">0</h2>
               </div>
             </div>
-            <div class="stat-chip" style="cursor: pointer;" onclick="scrollToSection('section-head-renewals')">
-              <div class="stat-chip-icon">⏳</div>
-              <div class="stat-chip-content">
-                <span class="stat-chip-val" id="head-stat-packages-ending">0</span>
-                <span class="stat-chip-lbl">Packages Ending</span>
+            <div class="kpi-card" onclick="scrollToSection('section-head-renewals')">
+              <div class="kpi-icon">⌛</div>
+              <div class="kpi-details">
+                <span class="kpi-label">Packages Ending</span>
+                <h2 class="kpi-value" id="head-stat-packages-ending">0</h2>
               </div>
             </div>
-            <div class="card stat-card border-left-success" style="cursor: pointer;" onclick="scrollToSection('section-head-renewals')">
-              <div class="stat-icon">🔄</div>
-              <div class="stat-details">
-                <span class="stat-label">RENEWED</span>
-                <h2 class="stat-value" id="head-stat-renewed">0</h2>
+            <div class="kpi-card kpi-card-success" onclick="scrollToSection('section-head-renewals')">
+              <div class="kpi-icon">🔄</div>
+              <div class="kpi-details">
+                <span class="kpi-label">RENEWED</span>
+                <h2 class="kpi-value" id="head-stat-renewed">0</h2>
               </div>
             </div>
-            <div class="card stat-card border-left-danger" style="cursor: pointer;" onclick="scrollToSection('section-head-renewals')">
-              <div class="stat-icon">⚠️</div>
-              <div class="stat-details">
-                <span class="stat-label">CHURNED</span>
-                <h2 class="stat-value" id="head-stat-churned">0</h2>
+            <div class="kpi-card kpi-card-danger" onclick="scrollToSection('section-head-renewals')">
+              <div class="kpi-icon">⚠️</div>
+              <div class="kpi-details">
+                <span class="kpi-label">CHURNED</span>
+                <h2 class="kpi-value" id="head-stat-churned">0</h2>
               </div>
             </div>
-            <div class="card stat-card border-left-purple" style="cursor: pointer;" onclick="scrollToSection('section-head-operations')">
-              <div class="stat-icon">📅</div>
-              <div class="stat-details">
-                <span class="stat-label">RESCHEDULED</span>
-                <h2 class="stat-value" id="head-stat-rescheduled-classes">0</h2>
+            <div class="kpi-card kpi-card-purple" onclick="scrollToSection('section-head-operations')">
+              <div class="kpi-icon">📅</div>
+              <div class="kpi-details">
+                <span class="kpi-label">RESCHEDULED</span>
+                <h2 class="kpi-value" id="head-stat-rescheduled-classes">0</h2>
               </div>
             </div>
           </div>
