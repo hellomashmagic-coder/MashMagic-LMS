@@ -576,31 +576,48 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       const classesToday = classes.filter(c => c.date === todayStr);
 
       const activeStudents = students.filter(s => s.status === 'Active').length;
-      const pkgEnding = students.filter(s => (s.remaining_classes !== undefined ? s.remaining_classes <= 3 : s.session_package - s.sessions_completed <= 3)).length;
-      const renewed = students.filter(s => s.renewal_status === 'Renewed').length;
-      const churned = students.filter(s => s.renewal_status === 'Churned').length;
-      const pendingRen = Math.max(0, pkgEnding - (renewed + churned));
+
+      // STEP 3 CORRECTION:
+      // Eligible Ending Packages = Students whose package ended or is ending soon (remaining_classes <= 3 or explicit renewal_status)
+      const eligiblePackages = students.filter(s => {
+        const isEnding = (s.remaining_classes !== undefined && s.remaining_classes !== null)
+          ? s.remaining_classes <= 3
+          : (s.total_classes && (s.total_classes - s.completed_classes <= 3));
+        const hasRenewalState = ['Renewed', 'Churned', 'Pending', 'Ending Soon'].includes(s.renewal_status);
+        return isEnding || hasRenewalState;
+      });
+
+      const pkgEndingCount = eligiblePackages.length;
+      const renewedCount = eligiblePackages.filter(s => s.renewal_status === 'Renewed').length;
+      const churnedCount = eligiblePackages.filter(s => s.renewal_status === 'Churned').length;
+      const pendingRenCount = Math.max(0, pkgEndingCount - (renewedCount + churnedCount));
+
+      const renewalRateVal = pkgEndingCount > 0 ? Math.min(100, Math.round((renewedCount / pkgEndingCount) * 100)) : 0;
+      const churnRateVal = pkgEndingCount > 0 ? Math.min(100, Math.round((churnedCount / pkgEndingCount) * 100)) : 0;
+
+      const renewalRateStr = pkgEndingCount > 0 ? `${renewalRateVal}%` : 'N/A';
+      const churnRateStr = pkgEndingCount > 0 ? `${churnRateVal}%` : 'N/A';
 
       return {
         role: currentUser ? currentUser.role : 'ACADEMIC_HEAD',
         summary: {
           active_students: activeStudents,
           new_students: Math.min(activeStudents, 4),
-          package_ending: pkgEnding || 3,
-          renewed: renewed || 2,
-          churned: churned || 1,
-          pending_renewal: pendingRen,
-          rescheduled: classes.filter(c => c.status === 'RESCHEDULED').length || 1,
-          renewal_rate: pkgEnding > 0 ? `${Math.round((renewed / pkgEnding) * 100)}%` : '80%',
-          churn_rate: pkgEnding > 0 ? `${Math.round((churned / pkgEnding) * 100)}%` : '20%'
+          package_ending: pkgEndingCount,
+          renewed: renewedCount,
+          churned: churnedCount,
+          pending_renewal: pendingRenCount,
+          rescheduled: classes.filter(c => c.status === 'RESCHEDULED').length,
+          renewal_rate: renewalRateStr,
+          churn_rate: churnRateStr
         },
         renewal_retention: {
-          package_ending: pkgEnding || 3,
-          renewed: renewed || 2,
-          pending: pendingRen,
-          churned: churned || 1,
-          renewal_rate: pkgEnding > 0 ? `${Math.round((renewed / pkgEnding) * 100)}%` : '80%',
-          churn_rate: pkgEnding > 0 ? `${Math.round((churned / pkgEnding) * 100)}%` : '20%'
+          package_ending: pkgEndingCount,
+          renewed: renewedCount,
+          pending: pendingRenCount,
+          churned: churnedCount,
+          renewal_rate: renewalRateStr,
+          churn_rate: churnRateStr
         },
         churn_reasons: {
           'Price / affordability': 1,
