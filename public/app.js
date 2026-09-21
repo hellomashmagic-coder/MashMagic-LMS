@@ -657,11 +657,11 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
           pendingWrapupsCount: classes.filter(c => c.wrapup_status === 'Pending').length,
           completedClassesThisMonth: classes.filter(c => c.status === 'Completed').length,
           totalHoursConducted: Math.round(classes.reduce((acc, c) => acc + (c.actual_minutes || 60), 0) / 60),
-          packageEndingCount: pkgEnding,
-          renewingStudentsCount: renewed,
-          renewalRate: 85,
-          churnedStudentsCount: churned,
-          churnRate: 15
+          packageEndingCount: pkgEndingCount,
+          renewingStudentsCount: renewedCount,
+          renewalRate: renewalRateVal,
+          churnedStudentsCount: churnedCount,
+          churnRate: churnRateVal
         },
         todays_classes: classesToday,
         classes: classes,
