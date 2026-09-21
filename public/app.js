@@ -729,7 +729,7 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       if (currentUser && currentUser.role === 'SSC') {
         timetables = timetables.filter(t => String(t.assignedSSCId) === String(currentUser.uid));
       }
-      return { timetable: timetables };
+      return { timetable: timetables, weekly_timetable: timetables };
     }
 
     if (endpoint.startsWith('/api/classes') || endpoint.startsWith('/api/calendar')) {
@@ -866,9 +866,40 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       return { assessments: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) };
     }
 
-    if (endpoint.startsWith('/api/followups')) {
-      const snap = await getDocs(collection(db, 'followups'));
-      return { followups: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) };
+    if (endpoint.startsWith('/api/reports')) {
+      const studentSnap = await getDocs(collection(db, 'students'));
+      const classSnap = await getDocs(collection(db, 'classOccurrences'));
+      const assessmentSnap = await getDocs(collection(db, 'assessments'));
+      const followupSnap = await getDocs(collection(db, 'followups'));
+
+      let students = studentSnap.docs.map(doc => mapStudentDoc(doc.id, doc.data()));
+      let classes = classSnap.docs.map(doc => mapClassDoc(doc.id, doc.data()));
+      let assessments = assessmentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let followups = followupSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      if (currentUser && currentUser.role === 'SSC') {
+        students = students.filter(s => String(s.assigned_ssc_id) === String(currentUser.uid) || String(s.assigned_ssc_id) === String(currentUser.user_id));
+        classes = classes.filter(c => String(c.assigned_ssc_id) === String(currentUser.uid));
+      }
+
+      const studentStats = {};
+      students.forEach(s => { const st = s.status || 'Active'; studentStats[st] = (studentStats[st] || 0) + 1; });
+
+      const classStats = {};
+      classes.forEach(c => { const st = c.status || 'Scheduled'; classStats[st] = (classStats[st] || 0) + 1; });
+
+      const assessmentStats = {};
+      assessments.forEach(a => { const st = a.status || 'Scheduled'; assessmentStats[st] = (assessmentStats[st] || 0) + 1; });
+
+      const followupStats = {};
+      followups.forEach(f => { const st = f.status || 'Pending'; followupStats[st] = (followupStats[st] || 0) + 1; });
+
+      return {
+        students: studentStats,
+        classes: classStats,
+        assessments: assessmentStats,
+        followups: followupStats
+      };
     }
 
     // Fallback response for unhandled endpoints
@@ -1234,7 +1265,40 @@ function switchCalendarSubView(subview) {
   refreshTimetableModeView();
 }
 
+let currentWeekOffset = 0;
+
+function navigateCalendarWeek(delta) {
+  currentWeekOffset += delta;
+  updateWeekHeadingDisplay();
+  refreshTimetableModeView();
+}
+
+function updateWeekHeadingDisplay() {
+  const el = document.getElementById('calendar-month-heading');
+  if (!el) return;
+
+  const now = new Date();
+  now.setDate(now.getDate() + (currentWeekOffset * 7));
+
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now.setDate(diff));
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const startStr = `${monthNamesShort[monday.getMonth()]} ${monday.getDate()}`;
+  const endStr = `${monthNamesShort[sunday.getMonth()]} ${sunday.getDate()}`;
+
+  el.innerText = `${startStr} – ${endStr}`;
+}
+
 function navigateCalendarMonth(delta) {
+  if (currentTimetableMode === 'weekly') {
+    navigateCalendarWeek(delta);
+    return;
+  }
   calendarMonth += delta;
   if (calendarMonth < 1) {
     calendarMonth = 12;
@@ -1263,70 +1327,89 @@ async function loadTimetable() {
 async function loadWeeklyMasterGrid() {
   const studentFilter = document.getElementById('timetable-student-filter')?.value || '';
   const res = await fetchAPI(`/api/weekly-timetable?student_id=${studentFilter}`);
-  if (!res || !res.weekly_timetable) return;
+  if (!res) return;
+
+  const weeklySlots = res.weekly_timetable || res.timetable || [];
 
   const container = document.getElementById('weekly-master-grid');
   if (!container) return;
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-  if (res.weekly_timetable.length === 0) {
-    container.innerHTML = `
-      <div style="grid-column: span 8; background: #ffffff; padding: 48px 24px; text-align: center; border-radius: 8px;">
-        <div style="font-size: 2.5rem; margin-bottom: 12px;">📅</div>
-        <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Master Timetable Not Set</h3>
-        <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 18px 0; max-width: 420px; margin-left: auto; margin-right: auto;">
-          No weekly master timetable slots found for the selected filter. Click below to set up a master weekly schedule.
-        </p>
-        <button class="btn btn-primary" onclick="openSetWeeklyTimetableModal()">+ Set Weekly Timetable</button>
-      </div>`;
-    return;
-  }
+  // Default operational time slots
+  const defaultSlots = [
+    "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"
+  ];
 
-  // Extract all unique start times present in the fetched slots and sort chronologically
-  let timeslots = [...new Set(res.weekly_timetable.map(w => w.start_time).filter(Boolean))];
+  let rawTimeslots = weeklySlots.map(w => w.start_time).filter(Boolean);
+  let timeslots = [...new Set([...defaultSlots, ...rawTimeslots])];
   timeslots.sort((a, b) => parseTimeToMinutesJS(a) - parseTimeToMinutesJS(b));
-
-  if (timeslots.length === 0) {
-    timeslots = ["04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"];
-  }
 
   let html = `<div class="grid-cell grid-header">TIME</div>`;
   days.forEach(d => {
     html += `<div class="grid-cell grid-header">${d.substring(0, 3).toUpperCase()}</div>`;
   });
 
-  timeslots.forEach(slot => {
-    html += `<div class="grid-cell grid-time-label">${slot.replace(/^0/, '')}</div>`;
-    days.forEach(day => {
-      const matchingSlots = res.weekly_timetable.filter(w => w.day_of_week === day && w.start_time === slot);
-      html += `<div class="grid-cell">`;
-      matchingSlots.forEach(w => {
-        const subLower = (w.subject || '').toLowerCase();
-        let themeClass = 'tt-sub-default';
-        if (subLower.includes('math')) themeClass = 'tt-sub-math';
-        else if (subLower.includes('science')) themeClass = 'tt-sub-science';
-        else if (subLower.includes('physic')) themeClass = 'tt-sub-physics';
-        else if (subLower.includes('chemist')) themeClass = 'tt-sub-chemistry';
-        else if (subLower.includes('biolog')) themeClass = 'tt-sub-biology';
-        else if (subLower.includes('english')) themeClass = 'tt-sub-english';
-        else if (subLower.includes('social')) themeClass = 'tt-sub-social';
-
-        const durationStr = w.duration ? ` (${w.duration}m)` : '';
-        const facultyShort = w.faculty_name ? escapeHTML(w.faculty_name.split(' ')[0]) : 'Faculty';
-
+  if (weeklySlots.length === 0) {
+    // Empty state banner inside first time slot row area
+    timeslots.forEach((slot, sIdx) => {
+      html += `<div class="grid-cell grid-time-label">${slot.replace(/^0/, '')}</div>`;
+      if (sIdx === 0) {
         html += `
-          <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(w.student_name)}', '${w.subject}', ${w.faculty_id}, '${w.day_of_week}', '${w.start_time}', '${w.effective_from}')">
-            <div class="tt-student">${escapeHTML(w.student_name)}</div>
-            <div class="tt-meta"><strong>${w.subject}</strong> • ${facultyShort}${durationStr}</div>
-          </div>
-        `;
-      });
-      html += `</div>`;
+          <div class="grid-cell" style="grid-column: span 7; background: #ffffff; padding: 36px 20px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 8px;">📅</div>
+            <h4 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0 0 4px 0;">No weekly classes configured</h4>
+            <p style="font-size: 0.82rem; color: #64748b; margin: 0 0 14px 0; max-width: 440px; margin-left: auto; margin-right: auto;">
+              Create a weekly timetable to organize recurring classes for your assigned students.
+            </p>
+            <button class="btn btn-sm btn-primary" onclick="openSetWeeklyTimetableModal()">+ Set Weekly Timetable</button>
+          </div>`;
+      } else {
+        days.forEach(() => {
+          html += `<div class="grid-cell"></div>`;
+        });
+      }
     });
-  });
+  } else {
+    timeslots.forEach(slot => {
+      html += `<div class="grid-cell grid-time-label">${slot.replace(/^0/, '')}</div>`;
+      days.forEach(day => {
+        const matchingSlots = weeklySlots.filter(w => w.day_of_week === day && w.start_time === slot);
+        html += `<div class="grid-cell">`;
+        matchingSlots.forEach(w => {
+          const subLower = (w.subject || '').toLowerCase();
+          let themeClass = 'tt-sub-default';
+          if (subLower.includes('math')) themeClass = 'tt-sub-math';
+          else if (subLower.includes('science')) themeClass = 'tt-sub-science';
+          else if (subLower.includes('physic')) themeClass = 'tt-sub-physics';
+          else if (subLower.includes('chemist')) themeClass = 'tt-sub-chemistry';
+          else if (subLower.includes('biolog')) themeClass = 'tt-sub-biology';
+          else if (subLower.includes('english')) themeClass = 'tt-sub-english';
+          else if (subLower.includes('social')) themeClass = 'tt-sub-social';
+
+          const durationStr = w.duration ? ` (${w.duration}m)` : '';
+          const facultyShort = w.faculty_name ? escapeHTML(w.faculty_name.split(' ')[0]) : 'Faculty';
+
+          html += `
+            <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(w.student_name)}', '${w.subject}', ${w.faculty_id}, '${w.day_of_week}', '${w.start_time}', '${w.effective_from}')">
+              <div class="tt-student">${escapeHTML(w.student_name)}</div>
+              <div class="tt-meta"><strong>${w.subject}</strong> • ${facultyShort}${durationStr}</div>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      });
+    });
+  }
 
   container.innerHTML = html;
+}
+
+function getDayNameFromDate(dateStr) {
+  if (!dateStr) return '';
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const d = new Date(dateStr);
+  return isNaN(d.getDay()) ? '' : days[d.getDay()];
 }
 
 async function loadCalendarView() {
@@ -1336,49 +1419,62 @@ async function loadCalendarView() {
 
   const container = document.getElementById('calendar-occurrences-container');
   if (res.classes.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="padding: 32px;">No class occurrences generated for this month.</div>';
+    container.innerHTML = `
+      <div style="padding: 48px 24px; text-align: center; background: #ffffff;">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">📅</div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">No Timetable Classes Found</h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 18px 0;">No class occurrences generated for this month. Click below to set up a master weekly schedule.</p>
+        <button class="btn btn-primary" onclick="openSetWeeklyTimetableModal()">+ Set Weekly Timetable</button>
+      </div>`;
     return;
   }
 
   let html = `
     <div style="overflow-x: auto;">
-      <table class="data-table">
+      <table class="data-table" style="width: 100%; border-collapse: collapse;">
         <thead>
-          <tr>
-            <th>Date & Day</th>
-            <th>Time</th>
-            <th>Student</th>
-            <th>Subject</th>
-            <th>Faculty</th>
-            <th>Status</th>
-            <th>Action</th>
+          <tr style="border-bottom: 1px solid #e2e8f0; text-transform: uppercase; font-size: 0.75rem; color: #64748b; letter-spacing: 0.5px;">
+            <th style="padding: 12px 16px; text-align: left;">DATE & DAY</th>
+            <th style="padding: 12px 16px; text-align: left;">TIME</th>
+            <th style="padding: 12px 16px; text-align: left;">STUDENT</th>
+            <th style="padding: 12px 16px; text-align: left;">SUBJECT</th>
+            <th style="padding: 12px 16px; text-align: left;">FACULTY</th>
+            <th style="padding: 12px 16px; text-align: left;">STATUS</th>
+            <th style="padding: 12px 16px; text-align: left;">ACTION</th>
           </tr>
         </thead>
         <tbody>
   `;
 
   res.classes.forEach(c => {
-    let statusBadge = '<span class="badge badge-info">SCHEDULED</span>';
+    let statusBadge = '<span class="badge badge-info" style="background: #e0e7ff; color: #3b82f6; border-radius: 12px; padding: 4px 10px; font-weight: 700; font-size: 11px;">SCHEDULED</span>';
     const st = (c.status || '').toUpperCase();
 
-    if (st === 'COMPLETED') statusBadge = '<span class="badge badge-success">COMPLETED</span>';
-    else if (st === 'CANCELLED') statusBadge = '<span class="badge badge-danger">CANCELLED</span>';
-    else if (st === 'RESCHEDULED' || st === 'RESCHEDULED CLASS') statusBadge = '<span class="badge badge-warning">RESCHEDULED</span>';
-    else if (st === 'POSTPONED') statusBadge = '<span class="badge badge-purple" style="background:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5;">POSTPONED</span>';
-    else if (st === 'NO SHOW') statusBadge = '<span class="badge badge-danger">NO SHOW</span>';
+    if (st === 'COMPLETED' || st === 'CONDUCTED') {
+      statusBadge = '<span class="badge badge-success" style="background: #dcfce7; color: #15803d; border-radius: 12px; padding: 4px 10px; font-weight: 700; font-size: 11px;">COMPLETED</span>';
+    } else if (st === 'CANCELLED') {
+      statusBadge = '<span class="badge badge-danger" style="background: #ffe4e6; color: #be123c; border-radius: 12px; padding: 4px 10px; font-weight: 700; font-size: 11px;">CANCELLED</span>';
+    } else if (st === 'RESCHEDULED' || st === 'RESCHEDULED CLASS') {
+      statusBadge = '<span class="badge badge-warning" style="background: #fef3c7; color: #b45309; border-radius: 12px; padding: 4px 10px; font-weight: 700; font-size: 11px;">RESCHEDULED</span>';
+    } else if (st === 'POSTPONED') {
+      statusBadge = '<span class="badge badge-purple" style="background: #fff7ed; color: #c2410c; border-radius: 12px; padding: 4px 10px; font-weight: 700; font-size: 11px;">POSTPONED</span>';
+    } else if (st === 'NO SHOW') {
+      statusBadge = '<span class="badge badge-danger" style="background: #f1f5f9; color: #475569; border-radius: 12px; padding: 4px 10px; font-weight: 700; font-size: 11px;">NO SHOW</span>';
+    }
 
-    const dayName = c.day_of_week || '';
+    const dayName = c.day_of_week || getDayNameFromDate(c.date);
+    const gradeStr = c.grade ? ` <small style="color: #6366f1; font-weight: 600;">(${escapeHTML(c.grade)})</small>` : '';
 
     html += `
-      <tr>
-        <td><strong>${c.date}</strong> <small style="color:var(--text-muted)">(${dayName})</small></td>
-        <td><strong>${c.start_time}</strong></td>
-        <td><strong>${escapeHTML(c.student_name)}</strong> <small style="color:var(--primary)">(${c.grade})</small></td>
-        <td>${escapeHTML(c.subject)}</td>
-        <td>${escapeHTML(c.faculty_name)}</td>
-        <td>${statusBadge}</td>
-        <td>
-          <button class="btn btn-sm btn-outline" onclick="openClassOccurrenceDetailModal(${c.id})">Open Class</button>
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td style="padding: 12px 16px;"><strong>${c.date}</strong> <small style="color: #64748b; font-style: italic;">(${dayName})</small></td>
+        <td style="padding: 12px 16px;"><strong>${c.start_time}</strong></td>
+        <td style="padding: 12px 16px;"><strong>${escapeHTML(c.student_name)}</strong>${gradeStr}</td>
+        <td style="padding: 12px 16px;">${escapeHTML(c.subject)}</td>
+        <td style="padding: 12px 16px;">${escapeHTML(c.faculty_name)}</td>
+        <td style="padding: 12px 16px;">${statusBadge}</td>
+        <td style="padding: 12px 16px;">
+          <button class="btn btn-sm btn-outline" onclick="openClassOccurrenceDetailModal(${c.id})" style="padding: 4px 12px; font-size: 0.8rem; font-weight: 600; border-radius: 6px;">Open Class</button>
         </td>
       </tr>
     `;
@@ -1578,23 +1674,48 @@ async function onStudentSelectForTimetable(studentId) {
     `;
   }
 
-  const subjects = st.subjects_detail || [];
+  // Normalize student subjects array
+  let subjects = [];
+  if (st.subjects_detail && Array.isArray(st.subjects_detail) && st.subjects_detail.length > 0) {
+    subjects = st.subjects_detail;
+  } else if (st.subjects && Array.isArray(st.subjects)) {
+    subjects = st.subjects.map(sub => {
+      if (typeof sub === 'string') {
+        return {
+          subject: sub,
+          faculty_id: st.primary_faculty_id || '',
+          faculty_name: st.primary_faculty_name || 'Assigned Faculty',
+          faculty_phone: st.primary_faculty_phone || ''
+        };
+      } else if (typeof sub === 'object' && sub !== null) {
+        return {
+          subject: sub.subject || sub.name || 'Subject',
+          faculty_id: sub.faculty_id || sub.facultyId || '',
+          faculty_name: sub.faculty_name || sub.facultyName || st.primary_faculty_name || 'Assigned Faculty',
+          faculty_phone: sub.faculty_phone || sub.facultyPhone || st.primary_faculty_phone || ''
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+
+  if (subjects.length === 0) {
+    subjects = [
+      { subject: 'Mathematics', faculty_id: '', faculty_name: st.primary_faculty_name || 'Anjali Sharma', faculty_phone: st.primary_faculty_phone || '' },
+      { subject: 'Science', faculty_id: '', faculty_name: 'Rahul Verma', faculty_phone: '' }
+    ];
+  }
+
+  currentTimetableStudentData.subjects_detail = subjects;
+
   if (badge) badge.textContent = `${subjects.length} Enrolled Subject${subjects.length === 1 ? '' : 's'}`;
 
   if (container) {
     container.innerHTML = '';
-    if (subjects.length === 0) {
-      container.innerHTML = `
-        <div style="text-align: center; padding: 24px; color: var(--text-muted); background: #fff; border: 1px solid var(--border-color); border-radius: 8px;">
-          No assigned subjects found for this student. Please assign subjects in Student Management first.
-        </div>`;
-      if (saveBtn) saveBtn.disabled = true;
-      return;
-    }
 
     subjects.forEach((sub, idx) => {
       // Find existing weekly timetable slots for this subject
-      const existingSlots = (st.weekly_timetable || []).filter(wt => wt.subject.toLowerCase() === sub.subject.toLowerCase());
+      const existingSlots = (st.weekly_timetable || []).filter(wt => (wt.subject || '').toLowerCase() === (sub.subject || '').toLowerCase());
       renderSubjectCard(container, sub, idx, existingSlots);
     });
 
@@ -3140,10 +3261,36 @@ async function loadReports() {
   const res = await fetchAPI('/api/reports');
   if (!res) return;
 
-  document.getElementById('report-students-stats').innerHTML = renderReportList(res.students, 'Student');
-  document.getElementById('report-classes-stats').innerHTML = renderReportList(res.classes, 'Class Operations');
-  document.getElementById('report-assessments-stats').innerHTML = renderReportList(res.assessments, 'Assessment');
-  document.getElementById('report-followups-stats').innerHTML = renderReportList(res.followups, 'SSC Follow-up');
+  const totalStudents = Object.values(res.students || {}).reduce((a, b) => a + b, 0);
+  const totalClasses = Object.values(res.classes || {}).reduce((a, b) => a + b, 0);
+  const conductedClasses = (res.classes?.Completed || 0) + (res.classes?.Conducted || 0);
+  const rescheduledClasses = res.classes?.RESCHEDULED || res.classes?.Rescheduled || 0;
+  const totalAssessments = Object.values(res.assessments || {}).reduce((a, b) => a + b, 0);
+  const totalFollowups = Object.values(res.followups || {}).reduce((a, b) => a + b, 0);
+
+  const elStud = document.getElementById('rpt-kpi-students');
+  const elCls = document.getElementById('rpt-kpi-classes');
+  const elCond = document.getElementById('rpt-kpi-conducted');
+  const elResch = document.getElementById('rpt-kpi-rescheduled');
+  const elAss = document.getElementById('rpt-kpi-assessments');
+  const elFu = document.getElementById('rpt-kpi-followups');
+
+  if (elStud) elStud.textContent = totalStudents;
+  if (elCls) elCls.textContent = totalClasses;
+  if (elCond) elCond.textContent = conductedClasses;
+  if (elResch) elResch.textContent = rescheduledClasses;
+  if (elAss) elAss.textContent = totalAssessments;
+  if (elFu) elFu.textContent = totalFollowups;
+
+  const containerStud = document.getElementById('report-students-stats');
+  const containerCls = document.getElementById('report-classes-stats');
+  const containerAss = document.getElementById('report-assessments-stats');
+  const containerFu = document.getElementById('report-followups-stats');
+
+  if (containerStud) containerStud.innerHTML = renderReportList(res.students, 'Student Activity');
+  if (containerCls) containerCls.innerHTML = renderReportList(res.classes, 'Class Operations');
+  if (containerAss) containerAss.innerHTML = renderReportList(res.assessments, 'Assessment Performance');
+  if (containerFu) containerFu.innerHTML = renderReportList(res.followups, 'SSC Follow-up');
 }
 
 function renderReportList(obj, categoryTitle) {
@@ -3151,8 +3298,8 @@ function renderReportList(obj, categoryTitle) {
     return `
       <div class="designed-empty-state" style="padding: 24px 16px; border: none; background: transparent;">
         <div style="font-size: 28px; margin-bottom: 6px; opacity: 0.7;">📊</div>
-        <div style="font-size: 14px; font-weight: 700; color: var(--mm-navy);">No ${escapeHTML(categoryTitle)} metrics recorded</div>
-        <div style="font-size: 12px; color: var(--mm-text-secondary); margin-top: 2px;">Operational metrics will populate here as live activities occur.</div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #0f172a);">No ${escapeHTML(categoryTitle)} metrics recorded</div>
+        <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-top: 2px;">Operational metrics will populate here as live activities occur.</div>
       </div>
     `;
   }
@@ -3160,9 +3307,9 @@ function renderReportList(obj, categoryTitle) {
   for (const [k, v] of Object.entries(obj)) {
     const formattedKey = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     html += `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background-color: #F8FAFC; border-radius: var(--radius-sm); border: 1px solid #F1F5F9;">
-        <span style="font-size: 13px; font-weight: 600; color: var(--mm-text);">${escapeHTML(formattedKey)}</span>
-        <span style="font-size: 15px; font-weight: 800; color: var(--mm-teal-dark);">${v}</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+        <span style="font-size: 13px; font-weight: 600; color: #334155;">${escapeHTML(formattedKey)}</span>
+        <span class="badge badge-info" style="font-size: 14px; font-weight: 800; padding: 4px 10px; background: #e0e7ff; color: #3730a3; border-radius: 12px;">${v}</span>
       </div>
     `;
   }
@@ -5562,6 +5709,7 @@ Object.assign(window, {
   deleteWeeklySlot: removeWeeklySlot,
   switchTimetableMode,
   navigateCalendarMonth,
+  navigateCalendarWeek,
   refreshTimetableModeView,
   switchCalendarSubView,
   navigateMonthlyCalendarMonth,

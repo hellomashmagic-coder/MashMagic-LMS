@@ -1205,12 +1205,13 @@
 
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
               <button class="btn btn-outline" onclick="openScheduleClassModal()">+ Schedule Class</button>
-              <button class="btn btn-primary" onclick="openCreateFollowupModal()">+ Add Follow-up</button>
+              <button class="btn btn-primary" onclick="openCreateFollowupModal()" style="background: #4f46e5; border-color: #4f46e5;">+ Add Follow-up</button>
             </div>
           </div>
 
-          <!-- Controls Bar matching MVP screenshot -->
+          <!-- Controls Bar matching user screenshot -->
           <div class="card" style="padding: 16px 20px; margin-bottom: 20px; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <!-- Row 1: Mode Tabs (Left) and Month Controls + Set Weekly Timetable Button (Right) -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
               <!-- Left: Mode Tabs -->
               <div style="display: flex; align-items: center; gap: 12px;">
@@ -1220,7 +1221,7 @@
                 </div>
               </div>
 
-              <!-- Right: Month Controls, Set Weekly Timetable Button, & Subview Toggles -->
+              <!-- Right: Month Controls & Set Weekly Timetable Button -->
               <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <div id="calendar-month-controls" style="display: flex; align-items: center; gap: 8px;">
                   <button class="btn btn-sm btn-outline" onclick="navigateCalendarMonth(-1)" style="font-size: 0.8rem; padding: 4px 10px;">‹ Previous Month</button>
@@ -1229,17 +1230,10 @@
                 </div>
 
                 <button class="btn btn-primary" onclick="openSetWeeklyTimetableModal()" style="font-weight: 700; background: #4f46e5; border-color: #4f46e5;">+ Set Weekly Timetable</button>
-
-                <div id="calendar-subview-toggle">
-                  <div class="preset-tabs" style="background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; gap: 4px;">
-                    <button class="tab-btn active" id="btn-subview-month" onclick="switchCalendarSubView('month')" style="padding: 5px 12px; font-size: 0.8rem;">Month View</button>
-                    <button class="tab-btn" id="btn-subview-week" onclick="switchCalendarSubView('week')" style="padding: 5px 12px; font-size: 0.8rem;">Week View</button>
-                  </div>
-                </div>
               </div>
             </div>
 
-            <!-- Student Selector & Legend Bar -->
+            <!-- Row 2: Student Selector (Left) and Subview Toggles (Right) -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
               <div style="display: flex; align-items: center; gap: 10px;">
                 <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">Student:</label>
@@ -1248,49 +1242,32 @@
                 </select>
               </div>
 
-              <!-- Subject Color Legend -->
-              <div style="display: flex; align-items: center; gap: 12px; font-size: 0.75rem; background: #f8fafc; padding: 6px 14px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
-                <span style="font-weight: 700; color: #475569;">SUBJECT LEGEND:</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #4f46e5;"></span> Math</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #10b981;"></span> Science</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #a855f7;"></span> Physics</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #f59e0b;"></span> Chemistry</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #22c55e;"></span> Biology</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #3b82f6;"></span> English</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #06b6d4;"></span> Social</span>
+              <div id="calendar-subview-toggle">
+                <div class="preset-tabs" style="background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; gap: 4px;">
+                  <button class="tab-btn" id="btn-subview-month" onclick="switchCalendarSubView('month')" style="padding: 5px 12px; font-size: 0.8rem;">Month View</button>
+                  <button class="tab-btn active" id="btn-subview-week" onclick="switchCalendarSubView('week')" style="padding: 5px 12px; font-size: 0.8rem;">Week View</button>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Mode A: Master Weekly Timetable Grid -->
+          <!-- Master Data Table Container (Matching User Screenshot!) -->
           <div id="container-mode-weekly">
             <div class="card timetable-card" style="padding: 0; overflow: hidden; border-radius: 10px; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-              <div class="weekly-master-grid" id="weekly-master-grid"></div>
+              <div id="calendar-occurrences-container"></div>
             </div>
           </div>
 
-          <!-- Mode B: Monthly Calendar Occurrences Table -->
+          <!-- Mode B: Alternative Grid View -->
           <div id="container-mode-calendar" style="display: none;">
             <div class="card timetable-card" style="padding: 0; border-radius: 10px; border: 1px solid #cbd5e1; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-              <div class="calendar-occurrences-grid" id="calendar-occurrences-container"></div>
+              <div class="weekly-master-grid" id="weekly-master-grid"></div>
             </div>
           </div>
         </section>
 
         <!-- MONTHLY CLASS CALENDAR OPERATIONAL CONTROL VIEW -->
         <section id="view-monthly-calendar" class="page-view">
-          <!-- Page Header & Action Controls -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a;">Monthly Class Calendar</h2>
-              <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem;">Complete monthly class schedule and operational control for your assigned students</p>
-            </div>
-            
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <button class="btn btn-outline" onclick="openSetWeeklyTimetableModal()">+ Set Weekly Timetable</button>
-              <button class="btn btn-primary" onclick="openCreateFollowupModal()">+ Add Follow-up</button>
-            </div>
-          </div>
 
           <!-- Month Navigator & Top Metric Summary Cards -->
           <div class="card" style="padding: 18px 20px; margin-bottom: 20px; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -1775,25 +1752,89 @@
 
         <!-- REPORTS VIEW -->
         <section id="view-reports" class="page-view">
-          <div class="report-card-grid">
-            <div class="report-card">
-              <div class="report-card-title">🎓 Student Enrollment & Activity</div>
-              <div class="report-card-desc">Overview of active enrollment, package progress, and student retention metrics.</div>
+          <!-- Operational KPI Summary Strip -->
+          <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px;">
+            <div class="card stat-card" style="padding: 14px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Active Students</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 4px;" id="rpt-kpi-students">0</div>
+            </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Total Classes</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 4px;" id="rpt-kpi-classes">0</div>
+            </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Conducted</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #14532d; margin-top: 4px;" id="rpt-kpi-conducted">0</div>
+            </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #7e22ce; letter-spacing: 0.5px;">Rescheduled</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #581c87; margin-top: 4px;" id="rpt-kpi-rescheduled">0</div>
+            </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #1e40af; letter-spacing: 0.5px;">Assessments</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #1e3a8a; margin-top: 4px;" id="rpt-kpi-assessments">0</div>
+            </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #c2410c; letter-spacing: 0.5px;">Follow-ups</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #7c2d12; margin-top: 4px;" id="rpt-kpi-followups">0</div>
+            </div>
+          </div>
+
+          <!-- Reports Grid Sections -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <!-- SECTION 1: Student Activity & Retention -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>🎓 Student Activity & Retention</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Overview of student enrollment and status</p>
+                </div>
+                <span class="badge badge-info" style="font-size: 0.72rem;">Summary</span>
+              </div>
               <div id="report-students-stats"></div>
             </div>
-            <div class="report-card">
-              <div class="report-card-title">📅 Class Operations & Wrap-ups</div>
-              <div class="report-card-desc">Daily class completion, verification rates, and rescheduling statistics.</div>
+
+            <!-- SECTION 2: Class Operations Breakdown -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📅 Class Operations Breakdown</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Daily class completion, verification rates & status</p>
+                </div>
+                <span class="badge badge-primary" style="font-size: 0.72rem;">Operations</span>
+              </div>
               <div id="report-classes-stats"></div>
             </div>
-            <div class="report-card">
-              <div class="report-card-title">📝 Evaluations & Assessment Results</div>
-              <div class="report-card-desc">Student exam performance, subject test scores, and assessment progress.</div>
+
+            <!-- SECTION 3: Assessments & Performance -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📝 Assessments & Performance</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Scheduled exams and assessment completion</p>
+                </div>
+                <span class="badge badge-warning" style="font-size: 0.72rem;">Academic</span>
+              </div>
               <div id="report-assessments-stats"></div>
             </div>
-            <div class="report-card">
-              <div class="report-card-title">✅ SSC Follow-up Operations</div>
-              <div class="report-card-desc">Resolution metrics for priority calls, operational follow-ups, and student updates.</div>
+
+            <!-- SECTION 4: SSC Follow-up Operations -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>✅ SSC Follow-up Operations</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Resolution metrics for priority calls and reminders</p>
+                </div>
+                <span class="badge badge-success" style="font-size: 0.72rem;">Actions</span>
+              </div>
               <div id="report-followups-stats"></div>
             </div>
           </div>
@@ -2488,48 +2529,53 @@
 
   <!-- 9. Create Follow-up Modal -->
   <div class="modal-overlay" id="modal-create-followup">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Create Student Follow-up</h3>
+    <div class="modal" style="max-width: 640px; width: 90%;">
+      <div class="modal-header" style="padding: 18px 24px; border-bottom: 1px solid var(--border-color);">
+        <div>
+          <h3 style="margin: 0; font-size: 1.25rem;">Create Student Follow-up</h3>
+          <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Record an action or reminder for a student.</p>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('modal-create-followup')">✕</button>
       </div>
-      <form id="form-create-followup" onsubmit="handleCreateFollowupSubmit(event)">
-        <div class="form-group">
-          <label>Select Student *</label>
-          <select id="fu-student-id" required></select>
-        </div>
-        <div class="form-group">
-          <label>Follow-up Type *</label>
-          <select id="fu-type" required>
-            <option value="Parent Call">Parent Call</option>
-            <option value="Student Call">Student Call</option>
-            <option value="Academic Issue">Academic Issue</option>
-            <option value="Attendance Issue">Attendance Issue</option>
-            <option value="Feedback">Feedback</option>
-            <option value="Timetable">Timetable</option>
-            <option value="Rescheduling">Rescheduling</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Due Date *</label>
-            <input type="date" id="fu-due-date" required>
+      <form id="form-create-followup" onsubmit="handleCreateFollowupSubmit(event)" style="padding: 24px;">
+        <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">Select Student *</label>
+            <select id="fu-student-id" class="form-control" style="width: 100%; box-sizing: border-box;" required></select>
           </div>
-          <div class="form-group">
-            <label>Priority *</label>
-            <select id="fu-priority" required>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">Follow-up Type *</label>
+            <select id="fu-type" class="form-control" style="width: 100%; box-sizing: border-box;" required>
+              <option value="Parent Call">Parent Call</option>
+              <option value="Student Call">Student Call</option>
+              <option value="Academic Issue">Academic Issue</option>
+              <option value="Attendance Issue">Attendance Issue</option>
+              <option value="Feedback">Feedback</option>
+              <option value="Timetable">Timetable</option>
+              <option value="Rescheduling">Rescheduling</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">Due Date *</label>
+            <input type="date" id="fu-due-date" class="form-control" style="width: 100%; box-sizing: border-box;" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">Priority *</label>
+            <select id="fu-priority" class="form-control" style="width: 100%; box-sizing: border-box;" required>
               <option value="High">High</option>
               <option value="Medium" selected>Medium</option>
               <option value="Low">Low</option>
             </select>
           </div>
         </div>
-        <div class="form-group">
-          <label>Notes / Goal *</label>
-          <textarea id="fu-notes" rows="3" required></textarea>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">Notes / Goal *</label>
+          <textarea id="fu-notes" class="form-control" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical;" required></textarea>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; margin-top: 0;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-create-followup')">Cancel</button>
           <button type="submit" class="btn btn-primary">Create Follow-up</button>
         </div>
