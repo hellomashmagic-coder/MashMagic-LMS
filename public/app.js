@@ -2705,93 +2705,272 @@ document.getElementById('classes-status-filter')?.addEventListener('change', () 
 document.getElementById('classes-faculty-filter')?.addEventListener('change', () => loadClasses());
 
 // 9. RESCHEDULING MODULE
+// 9. RESCHEDULING MODULE
 async function loadRescheduling() {
+  const tbody = document.getElementById('rescheduling-requests-table-body');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="padding: 24px; text-align: center;">
+          <div class="skeleton-loader">
+            <div style="height: 18px; width: 100%; background: #e2e8f0; border-radius: 4px; margin-bottom: 8px;"></div>
+            <div style="height: 18px; width: 100%; background: #f1f5f9; border-radius: 4px;"></div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   const res = await fetchAPI('/api/rescheduling');
   if (!res || !res.rescheduling_requests) return;
 
-  const container = document.getElementById('rescheduling-requests-container');
-  if (res.rescheduling_requests.length === 0) {
-    container.innerHTML = '<div class="empty-state">No rescheduling requests pending!</div>';
-    return;
-  }
+  if (!tbody) return;
 
-  let html = '';
-  res.rescheduling_requests.forEach(r => {
-    const isPending = r.status === 'Pending';
-    const statusBadge = isPending ? '<span class="badge badge-warning">Pending</span>' :
-                       (r.status === 'Approved' ? '<span class="badge badge-success">Approved</span>' : '<span class="badge badge-danger">Rejected</span>');
+  let requests = res.rescheduling_requests;
 
-    html += `
-      <div class="reschedule-card">
-        <div class="reschedule-info">
-          <div class="reschedule-student">${escapeHTML(r.student_name)} — ${r.subject}</div>
-          <div class="reschedule-slots">
-            <div class="slot-box slot-old"><strong>Original:</strong> ${r.original_date} • ${r.original_time}</div>
-            <div class="slot-arrow">➔</div>
-            <div class="slot-box slot-new"><strong>Suggested:</strong> ${r.suggested_date} • ${r.suggested_time}</div>
-          </div>
-          <div class="reschedule-reason">Reason: "${escapeHTML(r.reason)}"</div>
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 8px;">
-          ${statusBadge}
-          ${isPending ? `
-            <div style="display:flex; gap: 8px; margin-top: 6px;">
-              <button class="btn btn-sm btn-success" onclick="approveReschedule(${r.id})">Approve</button>
-              <button class="btn btn-sm btn-outline" onclick="openRequestRescheduleModal(${r.class_id}, ${r.student_id}, '${r.original_date} ${r.original_time}')">Change Time</button>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
+  // Update KPI counters
+  const totalCount = requests.length;
+  const pendingCount = requests.filter(r => r.status === 'Pending').length;
+  const approvedCount = requests.filter(r => r.status === 'Approved').length;
+  const rejectedCount = requests.filter(r => r.status === 'Rejected').length;
+
+  document.getElementById('stat-total-reschedule-reqs').innerText = totalCount;
+  document.getElementById('stat-pending-reschedule-reqs').innerText = pendingCount;
+  document.getElementById('stat-approved-reschedule-reqs').innerText = approvedCount;
+  document.getElementById('stat-rejected-reschedule-reqs').innerText = rejectedCount;
+
+  // Filters
+  const query = document.getElementById('rescheduling-search-input')?.value.trim().toLowerCase() || '';
+  const statusFilter = document.getElementById('rescheduling-status-filter')?.value || '';
+  const subjectFilter = document.getElementById('rescheduling-subject-filter')?.value || '';
+  const typeFilter = document.getElementById('rescheduling-type-filter')?.value || '';
+  const sortFilter = document.getElementById('rescheduling-sort-filter')?.value || 'newest';
+
+  let filtered = requests.filter(r => {
+    const textStr = `${r.student_name || ''} ${r.subject || ''} ${r.faculty_name || ''} ${r.reason || ''}`.toLowerCase();
+    const matchesSearch = !query || textStr.includes(query);
+    const matchesStatus = !statusFilter || r.status === statusFilter;
+    const matchesSubject = !subjectFilter || (r.subject && r.subject.toLowerCase() === subjectFilter.toLowerCase());
+    const matchesType = !typeFilter || r.request_type === typeFilter;
+    return matchesSearch && matchesStatus && matchesSubject && matchesType;
   });
-  container.innerHTML = html;
-}
 
-async function approveReschedule(reqId) {
-  if (!confirm('Are you sure you want to approve this rescheduling request?')) return;
-  const res = await fetchAPI(`/api/rescheduling/${reqId}/approve`, 'POST');
-  if (res && res.success) {
-    alert('Rescheduling approved!');
-    loadRescheduling();
+  if (sortFilter === 'oldest') {
+    filtered.sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0));
+  } else {
+    filtered.sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
   }
-}
 
-// 10. ASSESSMENTS MODULE
-async function loadAssessments() {
-  const res = await fetchAPI('/api/assessments');
-  if (!res || !res.assessments) return;
-
-  const tbody = document.getElementById('assessments-table-body');
-  if (res.assessments.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 24px;">No assessments recorded.</td></tr>';
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="padding: 48px 16px; text-align: center;">
+          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
+            <div class="report-empty-icon" style="font-size: 40px; margin-bottom: 12px;">🔄</div>
+            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Rescheduling Requests</div>
+            <div style="font-size: 13.5px; color: #64748b;">New student or faculty time-change requests will appear here.</div>
+          </div>
+        </td>
+      </tr>
+    `;
     return;
   }
 
   let html = '';
-  res.assessments.forEach(a => {
-    const statusBadge = a.status === 'Completed' ? '<span class="badge badge-success">Completed</span>' :
-                       (a.status === 'Result Pending' ? '<span class="badge badge-warning">Result Pending</span>' : '<span class="badge badge-info">Scheduled</span>');
+  filtered.forEach(r => {
+    const initials = (r.student_name || 'ST').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const avatarBg = '#4f46e5';
 
-    const scoreDisplay = a.score !== null ? `<strong>${a.score} / ${a.max_score}</strong> (${a.percentage}%)` : '—';
+    const statusBadge = r.status === 'Pending' ? '<span class="badge badge-warning" style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a;">Pending</span>' :
+                       (r.status === 'Approved' ? '<span class="badge badge-success" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">Approved</span>' : '<span class="badge badge-danger" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;">Rejected</span>');
+
+    const isPending = r.status === 'Pending';
+    const reqIdParam = typeof r.id === 'string' ? `'${r.id}'` : r.id;
 
     html += `
-      <tr>
-        <td><strong>${escapeHTML(a.student_name)}</strong></td>
-        <td>${escapeHTML(a.grade)}</td>
-        <td>${escapeHTML(a.subject)}</td>
-        <td>${escapeHTML(a.type)}</td>
-        <td>${a.date} at ${a.time}</td>
-        <td>${escapeHTML(a.faculty_name || 'Unassigned')}</td>
-        <td>${statusBadge}</td>
-        <td>${scoreDisplay}</td>
-        <td>
-          ${a.status !== 'Completed' ? `<button class="btn btn-sm btn-primary" onclick="openAssessmentResultModal(${a.id})">Enter Result</button>` : '<span style="color:var(--text-light); font-size:12px;">Recorded</span>'}
+      <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;">
+        <td style="padding: 12px 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${avatarBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${initials}</div>
+            <div>
+              <div style="font-weight: 700; color: #0f172a;">${escapeHTML(r.student_name)}</div>
+              <div style="font-size: 11px; color: #64748b;">${escapeHTML(r.grade || 'Grade 8')}</div>
+            </div>
+          </div>
+        </td>
+        <td style="padding: 12px 16px; font-weight: 600; color: #334155;">${escapeHTML(r.subject)}</td>
+        <td style="padding: 12px 16px; color: #475569; font-size: 13px;">${escapeHTML(r.original_date || '')} <br><span style="font-weight:700; color:#0f172a;">${escapeHTML(r.original_time || '')}</span></td>
+        <td style="padding: 12px 16px; color: #2563eb; font-size: 13px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="color:#94a3b8;">➔</span>
+            <div>${escapeHTML(r.suggested_date || '')} <br><span style="font-weight:700; color:#1d4ed8;">${escapeHTML(r.suggested_time || '')}</span></div>
+          </div>
+        </td>
+        <td style="padding: 12px 16px; color: #334155; font-weight: 600;">${escapeHTML(r.faculty_name || 'Assigned Faculty')}</td>
+        <td style="padding: 12px 16px; color: #64748b; font-size: 13px;">${escapeHTML(r.reason || 'Time conflict')}</td>
+        <td style="padding: 12px 16px;">${statusBadge}</td>
+        <td style="padding: 12px 16px; color: #64748b; font-size: 12px;">${escapeHTML(r.created_at || r.createdAt || 'Recent')}</td>
+        <td style="padding: 12px 16px; text-align: right;">
+          <div style="display: flex; gap: 6px; justify-content: flex-end;">
+            ${isPending ? `
+              <button class="btn btn-sm" style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-size: 12px; padding: 4px 10px;" onclick="approveReschedule(${reqIdParam})">✓ Approve</button>
+              <button class="btn btn-sm" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 12px; padding: 4px 10px;" onclick="rejectReschedule(${reqIdParam})">✕ Reject</button>
+            ` : ''}
+            <button class="btn btn-sm btn-outline" style="font-size: 12px; padding: 4px 10px;" onclick="alert('Viewing rescheduling request details for ${escapeHTML(r.student_name)}')">👁 View</button>
+          </div>
         </td>
       </tr>
     `;
   });
   tbody.innerHTML = html;
 }
+
+// Rescheduling Event Listeners
+document.getElementById('rescheduling-search-input')?.addEventListener('input', () => loadRescheduling());
+document.getElementById('rescheduling-status-filter')?.addEventListener('change', () => loadRescheduling());
+document.getElementById('rescheduling-subject-filter')?.addEventListener('change', () => loadRescheduling());
+document.getElementById('rescheduling-type-filter')?.addEventListener('change', () => loadRescheduling());
+document.getElementById('rescheduling-sort-filter')?.addEventListener('change', () => loadRescheduling());
+
+async function approveReschedule(reqId) {
+  if (!confirm('Are you sure you want to approve this rescheduling request?')) return;
+  const res = await fetchAPI(`/api/rescheduling/${reqId}/approve`, 'POST');
+  if (res && res.success) {
+    alert('Rescheduling request approved! The class occurrence has been updated.');
+    loadRescheduling();
+  }
+}
+
+async function rejectReschedule(reqId) {
+  if (!confirm('Are you sure you want to reject this rescheduling request?')) return;
+  const res = await fetchAPI(`/api/rescheduling/${reqId}/reject`, 'POST');
+  if (res && res.success) {
+    alert('Rescheduling request rejected.');
+    loadRescheduling();
+  }
+}
+
+// 10. ASSESSMENTS MODULE
+async function loadAssessments() {
+  const tbody = document.getElementById('assessments-table-body');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="padding: 24px; text-align: center;">
+          <div class="skeleton-loader">
+            <div style="height: 18px; width: 100%; background: #e2e8f0; border-radius: 4px; margin-bottom: 8px;"></div>
+            <div style="height: 18px; width: 100%; background: #f1f5f9; border-radius: 4px;"></div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  const res = await fetchAPI('/api/assessments');
+  if (!res || !res.assessments) return;
+
+  if (!tbody) return;
+
+  let assessments = res.assessments;
+
+  // Calculate KPI counters
+  const totalCount = assessments.length;
+  const completedCount = assessments.filter(a => a.status === 'Completed').length;
+  const upcomingCount = assessments.filter(a => a.status === 'Scheduled').length;
+  const pendingResultsCount = assessments.filter(a => a.status === 'Result Pending' || (a.status === 'Scheduled' && new Date(a.date) < new Date())).length;
+  const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  document.getElementById('stat-total-assessments').innerText = totalCount;
+  document.getElementById('stat-completed-assessments').innerText = completedCount;
+  document.getElementById('stat-assessment-completion-rate').innerText = `${completionRate}% completion rate`;
+  document.getElementById('stat-upcoming-assessments').innerText = upcomingCount;
+  document.getElementById('stat-pending-results-assessments').innerText = pendingResultsCount;
+
+  // Filters
+  const query = document.getElementById('assessments-search-input')?.value.trim().toLowerCase() || '';
+  const subjectFilter = document.getElementById('assessments-subject-filter')?.value || '';
+  const typeFilter = document.getElementById('assessments-type-filter')?.value || '';
+  const statusFilter = document.getElementById('assessments-status-filter')?.value || '';
+  const sortFilter = document.getElementById('assessments-sort-filter')?.value || 'newest';
+
+  let filtered = assessments.filter(a => {
+    const textStr = `${a.student_name || ''} ${a.subject || ''} ${a.faculty_name || ''} ${a.type || ''}`.toLowerCase();
+    const matchesSearch = !query || textStr.includes(query);
+    const matchesSubject = !subjectFilter || (a.subject && a.subject.toLowerCase() === subjectFilter.toLowerCase());
+    const matchesType = !typeFilter || a.type === typeFilter;
+    const matchesStatus = !statusFilter || a.status === statusFilter;
+    return matchesSearch && matchesSubject && matchesType && matchesStatus;
+  });
+
+  if (sortFilter === 'oldest') {
+    filtered.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+  } else {
+    filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="9" style="padding: 48px 16px; text-align: center;">
+          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
+            <div class="report-empty-icon" style="font-size: 40px; margin-bottom: 12px;">📝</div>
+            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Assessments Scheduled</div>
+            <div style="font-size: 13.5px; color: #64748b;">Schedule an assessment to start tracking student performance.</div>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(a => {
+    const initials = (a.student_name || 'ST').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const avatarBg = '#3b82f6';
+
+    const statusBadge = a.status === 'Completed' ? '<span class="badge badge-success" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">Completed</span>' :
+                       (a.status === 'Result Pending' ? '<span class="badge badge-warning" style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a;">Pending</span>' :
+                       '<span class="badge badge-info" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">Scheduled</span>');
+
+    const scoreDisplay = (a.score !== null && a.score !== undefined) 
+      ? `<strong>${a.score} / ${a.max_score || 100}</strong> <small style="color:var(--text-muted);">(${a.percentage || 0}%)</small>`
+      : '<span style="color:var(--text-muted);">—</span>';
+
+    const assIdParam = typeof a.id === 'string' ? `'${a.id}'` : a.id;
+
+    html += `
+      <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;">
+        <td style="padding: 12px 16px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${avatarBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">${initials}</div>
+            <strong style="color: #0f172a;">${escapeHTML(a.student_name)}</strong>
+          </div>
+        </td>
+        <td style="padding: 12px 16px; color: #475569;">${escapeHTML(a.grade || '-')}</td>
+        <td style="padding: 12px 16px; font-weight: 600; color: #334155;">${escapeHTML(a.subject)}</td>
+        <td style="padding: 12px 16px; color: #475569;">${escapeHTML(a.type)}</td>
+        <td style="padding: 12px 16px; color: #334155; font-size: 13px;">${a.date} <span style="color:#64748b;">${a.time || ''}</span></td>
+        <td style="padding: 12px 16px; color: #334155; font-weight: 500;">${escapeHTML(a.faculty_name || 'Assigned Faculty')}</td>
+        <td style="padding: 12px 16px;">${statusBadge}</td>
+        <td style="padding: 12px 16px;">${scoreDisplay}</td>
+        <td style="padding: 12px 16px; text-align: right;">
+          <div style="display: flex; gap: 6px; justify-content: flex-end;">
+            ${a.status !== 'Completed' ? `<button class="btn btn-sm btn-primary" style="font-size: 12px; padding: 4px 10px;" onclick="openAssessmentResultModal(${assIdParam})">Record Result</button>` : ''}
+            <button class="btn btn-sm btn-outline" style="font-size: 12px; padding: 4px 10px;" onclick="alert('Viewing assessment details for ${escapeHTML(a.student_name)}')">👁 View</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+// Assessment Event Listeners
+document.getElementById('assessments-search-input')?.addEventListener('input', () => loadAssessments());
+document.getElementById('assessments-subject-filter')?.addEventListener('change', () => loadAssessments());
+document.getElementById('assessments-type-filter')?.addEventListener('change', () => loadAssessments());
+document.getElementById('assessments-status-filter')?.addEventListener('change', () => loadAssessments());
+document.getElementById('assessments-sort-filter')?.addEventListener('change', () => loadAssessments());
 
 // 11. FOLLOW-UPS MODULE
 async function loadFollowups() {
@@ -3710,26 +3889,147 @@ async function handleRequestRescheduleSubmit(e) {
   }
 }
 
-function openScheduleAssessmentModal() {
-  document.getElementById('modal-schedule-assessment')?.classList.add('active');
+let currentAssessmentStudentData = null;
+
+async function openScheduleAssessmentModal() {
+  const modal = document.getElementById('modal-schedule-assessment');
+  if (!modal) return;
+
+  const studentSelect = document.getElementById('sa-student-id');
+  const subjectSelect = document.getElementById('sa-subject');
+  const facultySelect = document.getElementById('sa-faculty-id');
+  const dateInput = document.getElementById('sa-date');
+  const notesInput = document.getElementById('sa-notes');
+  const submitBtn = document.getElementById('sa-submit-btn');
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerText = 'Schedule Assessment';
+  }
+
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  if (notesInput) {
+    notesInput.value = '';
+    const counter = document.getElementById('sa-notes-counter');
+    if (counter) counter.innerText = '0/500';
+  }
+
+  // Load students for dropdown
+  const res = await fetchAPI('/api/students');
+  if (res && res.students && studentSelect) {
+    let html = '<option value="">Choose a student...</option>';
+    res.students.forEach(s => {
+      html += `<option value="${s.id}">${escapeHTML(s.name)} (${escapeHTML(s.grade || 'Grade 8')})</option>`;
+    });
+    studentSelect.innerHTML = html;
+  }
+
+  // Attach change listeners
+  if (studentSelect) {
+    studentSelect.onchange = (e) => onStudentSelectForAssessment(e.target.value);
+  }
+  if (subjectSelect) {
+    subjectSelect.onchange = (e) => onSubjectSelectForAssessment(e.target.value);
+  }
+
+  modal.classList.add('active');
+}
+
+async function onStudentSelectForAssessment(studentId) {
+  const subjectSelect = document.getElementById('sa-subject');
+  const facultySelect = document.getElementById('sa-faculty-id');
+  if (!studentId) {
+    currentAssessmentStudentData = null;
+    return;
+  }
+
+  const res = await fetchAPI(`/api/students/${studentId}`);
+  if (res && res.student) {
+    const st = res.student;
+    currentAssessmentStudentData = st;
+
+    // Populate subject select with assigned student subjects
+    if (subjectSelect) {
+      const subjects = st.subjects_detail || [];
+      if (subjects.length > 0) {
+        let html = '<option value="">Select subject...</option>';
+        subjects.forEach(sub => {
+          html += `<option value="${escapeHTML(sub.subject)}">${escapeHTML(sub.subject)}</option>`;
+        });
+        subjectSelect.innerHTML = html;
+      }
+    }
+  }
+}
+
+function onSubjectSelectForAssessment(subjectName) {
+  const facultySelect = document.getElementById('sa-faculty-id');
+  if (!subjectName || !currentAssessmentStudentData) return;
+
+  const subjectsDetail = currentAssessmentStudentData.subjects_detail || [];
+  const targetSub = subjectsDetail.find(s => s.subject.toLowerCase() === subjectName.toLowerCase());
+
+  if (targetSub && facultySelect) {
+    facultySelect.innerHTML = `<option value="${targetSub.faculty_id || ''}" selected>${escapeHTML(targetSub.faculty_name || 'Assigned Faculty')}</option>`;
+  }
 }
 
 async function handleScheduleAssessmentSubmit(e) {
   e.preventDefault();
+  const submitBtn = document.getElementById('sa-submit-btn');
+
+  const studentId = document.getElementById('sa-student-id').value;
+  const subject = document.getElementById('sa-subject').value;
+  const type = document.getElementById('sa-type').value;
+  const date = document.getElementById('sa-date').value;
+  const time = document.getElementById('sa-time').value;
+  const notes = document.getElementById('sa-notes').value;
+  const facultySelect = document.getElementById('sa-faculty-id');
+
+  if (!studentId || !subject || !type || !date || !time) {
+    alert('Please fill out all required fields.');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Scheduling...';
+  }
+
+  const studentName = currentAssessmentStudentData ? currentAssessmentStudentData.name : 'Student';
+  const grade = currentAssessmentStudentData ? currentAssessmentStudentData.grade : 'Grade 8';
+  const facultyName = facultySelect?.options[facultySelect.selectedIndex]?.text || 'Assigned Faculty';
+  const facultyId = facultySelect?.value || null;
+
   const data = {
-    student_id: document.getElementById('sa-student-id').value,
-    subject: document.getElementById('sa-subject').value,
-    type: document.getElementById('sa-type').value,
-    date: document.getElementById('sa-date').value,
-    time: document.getElementById('sa-time').value,
-    notes: document.getElementById('sa-notes').value
+    student_id: studentId,
+    student_name: studentName,
+    grade: grade,
+    subject: subject,
+    type: type,
+    date: date,
+    time: time,
+    faculty_id: facultyId,
+    faculty_name: facultyName,
+    notes: notes
   };
 
   const res = await fetchAPI('/api/assessments', 'POST', data);
   if (res && res.success) {
     closeModal('modal-schedule-assessment');
-    alert('Assessment scheduled!');
+    alert('Assessment scheduled successfully!');
+    if (currentView === 'assessments') loadAssessments();
     refreshCurrentView();
+  } else {
+    alert(res?.error || 'Failed to schedule assessment.');
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerText = 'Schedule Assessment';
   }
 }
 
@@ -5114,6 +5414,7 @@ Object.assign(window, {
   openEditFacultyModal,
   updateFacultyCapabilitySummary,
   handleFacultyFormSubmit,
+  loadFacultyDirectory,
   openRegisterStudentModal,
   handleRegisterStudentSubmit,
   openScheduleClassModal,
