@@ -2020,5 +2020,36 @@ html, body {
   line-height: 1.45;
 }
 
+/* Phase 7 Form & Modal Standardization */
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
 
-
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 12px;
+  }
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh;
+    border-radius: var(--radius-md);
+  }
+  .modal-header, .modal-footer, .modal-body {
+    padding: 16px !important;
+  }
+  .form-grid-2col, .info-grid-2col {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .student-drawer {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .modal-footer {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
