@@ -2618,30 +2618,24 @@ async function loadSSCDashboard() {
 
   const scheduleContainer = document.getElementById('today-schedule-list');
   if (!data.today_schedule || data.today_schedule.length === 0) {
-    scheduleContainer.innerHTML = `
-      <div class="report-empty-state" style="padding: 32px 16px;">
-        <div class="report-empty-icon">📅</div>
-        <div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 4px;">No classes scheduled for today</div>
-        <div style="font-size: 13px; color: #64748b;">Your schedule is clear for today.</div>
-      </div>
-    `;
+    scheduleContainer.innerHTML = renderEmptyState({ icon: '📅', title: 'No classes scheduled for today', message: 'Your schedule is clear for today.' });
   } else {
     let html = '';
     data.today_schedule.forEach(c => {
       let wrapupBadge = '';
       if (c.wrapup_status === 'VERIFIED') {
-        wrapupBadge = `<span class="badge badge-success">Verified (${c.actual_minutes || c.duration}m)</span>`;
+        wrapupBadge = renderStatusBadge('VERIFIED');
       } else if (c.wrapup_status === 'SUBMITTED') {
-        wrapupBadge = `<span class="badge" style="background:#fef08a; color:#854d0e; font-weight:700;">Awaiting Verification</span>`;
+        wrapupBadge = renderStatusBadge('SUBMITTED');
       } else if (c.wrapup_status === 'CORRECTION_REQUIRED') {
-        wrapupBadge = `<span class="badge badge-danger">Correction Required</span>`;
+        wrapupBadge = renderStatusBadge('CORRECTION_REQUIRED');
       } else {
-        wrapupBadge = `<span class="badge badge-secondary">Wrap-up Pending</span>`;
+        wrapupBadge = renderStatusBadge('PENDING');
       }
 
       let reviewBtn = '';
       if (c.wrapup_status === 'SUBMITTED' || c.wrapup_status === 'CORRECTION_REQUIRED') {
-        reviewBtn = `<button class="btn btn-sm btn-primary" onclick="openSSCReviewModal(${c.id})" style="background:#16a34a; border:none; font-weight:700;">🔍 Review Report</button>`;
+        reviewBtn = `<button class="btn btn-sm btn-primary" onclick="openSSCReviewModal(${c.id})">🔍 Review Report</button>`;
       }
 
       html += `
@@ -2667,13 +2661,7 @@ async function loadSSCDashboard() {
 
   const actionsContainer = document.getElementById('dashboard-pending-actions');
   if (!data.pending_actions || data.pending_actions.length === 0) {
-    actionsContainer.innerHTML = `
-      <div class="report-empty-state" style="padding: 32px 16px;">
-        <div class="report-empty-icon">📌</div>
-        <div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 4px;">No priority follow-ups</div>
-        <div style="font-size: 13px; color: #64748b;">All current actions are up to date.</div>
-      </div>
-    `;
+    actionsContainer.innerHTML = renderEmptyState({ icon: '📌', title: 'No priority follow-ups', message: 'All current actions are up to date.' });
   } else {
     let html = '';
     data.pending_actions.forEach(a => {
@@ -2724,12 +2712,8 @@ async function loadStudents() {
   if (res.students.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="10" style="padding: 40px 16px; text-align: center;">
-          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
-            <div class="report-empty-icon" style="font-size: 36px; margin-bottom: 12px;">👨‍🎓</div>
-            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Students Assigned</div>
-            <div style="font-size: 13.5px; color: #64748b;">Students assigned to you will appear here.</div>
-          </div>
+        <td colspan="10" style="padding: 32px 16px; text-align: center;">
+          ${renderEmptyState({ icon: '👨‍🎓', title: 'No Students Assigned', message: 'Students assigned to you will appear here.' })}
         </td>
       </tr>
     `;
@@ -2738,10 +2722,7 @@ async function loadStudents() {
 
   let html = '';
   res.students.forEach(s => {
-    const statusBadge = s.status === 'Active' ? '<span class="badge badge-success">Active</span>' :
-                       (s.status === 'Course Completed' ? '<span class="badge badge-primary">Completed</span>' :
-                       (s.status === 'Archived' ? '<span class="badge badge-danger">Archived</span>' :
-                       (s.status === 'On Hold' ? '<span class="badge badge-warning">On Hold</span>' : '<span class="badge badge-secondary">Inactive</span>')));
+    const statusBadge = renderStatusBadge(s.status);
 
     const sscBadge = s.ssc_name ? `<span class="badge badge-info">${escapeHTML(s.ssc_name)}</span>` : '<span class="badge badge-warning">Unassigned</span>';
     const regNo = s.register_number || s.register_no || 'MM-2026-0000';
@@ -2805,22 +2786,13 @@ async function loadClasses() {
 
   const container = document.getElementById('classes-cards-container');
   if (res.classes.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 32px; text-align: center; color: var(--text-secondary);">No classes found for selected filters.</div>';
+    container.innerHTML = `<div style="grid-column: 1/-1;">${renderEmptyState({ icon: '📚', title: 'No classes found', message: 'No classes found for selected filters.' })}</div>`;
     return;
   }
 
   let html = '';
   res.classes.forEach(c => {
-    let wrapupBadge = '';
-    if (c.wrapup_status === 'VERIFIED') {
-      wrapupBadge = `<span class="class-card-status-badge verified">VERIFIED (${c.actual_minutes || c.duration}m)</span>`;
-    } else if (c.wrapup_status === 'SUBMITTED') {
-      wrapupBadge = `<span class="class-card-status-badge submitted">AWAITING VERIFICATION</span>`;
-    } else if (c.wrapup_status === 'CORRECTION_REQUIRED') {
-      wrapupBadge = `<span class="class-card-status-badge correction">CORRECTION REQUIRED</span>`;
-    } else {
-      wrapupBadge = `<span class="class-card-status-badge">WRAP-UP PENDING</span>`;
-    }
+    let wrapupBadge = renderStatusBadge(c.wrapup_status || 'PENDING');
 
     let reviewBtn = '';
     if (c.wrapup_status === 'SUBMITTED' || c.wrapup_status === 'CORRECTION_REQUIRED') {
@@ -2919,12 +2891,8 @@ async function loadRescheduling() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" style="padding: 48px 16px; text-align: center;">
-          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
-            <div class="report-empty-icon" style="font-size: 40px; margin-bottom: 12px;">🔄</div>
-            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Rescheduling Requests</div>
-            <div style="font-size: 13.5px; color: #64748b;">New student or faculty time-change requests will appear here.</div>
-          </div>
+        <td colspan="9" style="padding: 32px 16px; text-align: center;">
+          ${renderEmptyState({ icon: '🔄', title: 'No Rescheduling Requests', message: 'New student or faculty time-change requests will appear here.' })}
         </td>
       </tr>
     `;
@@ -2936,8 +2904,7 @@ async function loadRescheduling() {
     const initials = (r.student_name || 'ST').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const avatarBg = '#4f46e5';
 
-    const statusBadge = r.status === 'Pending' ? '<span class="badge badge-warning" style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a;">Pending</span>' :
-                       (r.status === 'Approved' ? '<span class="badge badge-success" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">Approved</span>' : '<span class="badge badge-danger" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;">Rejected</span>');
+    const statusBadge = renderStatusBadge(r.status);
 
     const isPending = r.status === 'Pending';
     const reqIdParam = typeof r.id === 'string' ? `'${r.id}'` : r.id;
@@ -3066,12 +3033,8 @@ async function loadAssessments() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" style="padding: 48px 16px; text-align: center;">
-          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
-            <div class="report-empty-icon" style="font-size: 40px; margin-bottom: 12px;">📝</div>
-            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Assessments Scheduled</div>
-            <div style="font-size: 13.5px; color: #64748b;">Schedule an assessment to start tracking student performance.</div>
-          </div>
+        <td colspan="9" style="padding: 32px 16px; text-align: center;">
+          ${renderEmptyState({ icon: '📝', title: 'No Assessments Scheduled', message: 'Schedule an assessment to start tracking student performance.' })}
         </td>
       </tr>
     `;
@@ -3083,9 +3046,7 @@ async function loadAssessments() {
     const initials = (a.student_name || 'ST').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     const avatarBg = '#3b82f6';
 
-    const statusBadge = a.status === 'Completed' ? '<span class="badge badge-success" style="background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;">Completed</span>' :
-                       (a.status === 'Result Pending' ? '<span class="badge badge-warning" style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a;">Pending</span>' :
-                       '<span class="badge badge-info" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">Scheduled</span>');
+    const statusBadge = renderStatusBadge(a.status);
 
     const scoreDisplay = (a.score !== null && a.score !== undefined) 
       ? `<strong>${a.score} / ${a.max_score || 100}</strong> <small style="color:var(--text-muted);">(${a.percentage || 0}%)</small>`
@@ -3134,16 +3095,21 @@ async function loadFollowups() {
 
   const tbody = document.getElementById('followups-table-body');
   if (res.followups.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No follow-ups found.</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding: 32px 16px; text-align: center;">
+          ${renderEmptyState({ icon: '📋', title: 'No follow-ups found', message: 'All student follow-ups are up to date.' })}
+        </td>
+      </tr>
+    `;
     return;
   }
 
   let html = '';
   res.followups.forEach(f => {
     const isPending = f.status === 'Pending';
-    const statusBadge = isPending ? '<span class="badge badge-warning">Pending</span>' : '<span class="badge badge-success">Completed</span>';
-    const prioBadge = f.priority === 'High' ? '<span class="badge badge-danger">High</span>' :
-                     (f.priority === 'Medium' ? '<span class="badge badge-warning">Medium</span>' : '<span class="badge badge-info">Low</span>');
+    const statusBadge = renderStatusBadge(f.status);
+    const prioBadge = renderStatusBadge(f.priority);
 
     html += `
       <tr>
@@ -3627,13 +3593,8 @@ async function loadFacultyDirectory() {
   if (facultyList.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="padding: 40px 16px; text-align: center;">
-          <div class="directory-empty-container" style="box-shadow: none; border: none; padding: 20px 0; margin: 0 auto;">
-            <div class="directory-empty-icon">👩‍🏫</div>
-            <div class="directory-empty-title">No faculty members registered yet.</div>
-            <div class="directory-empty-text">Add faculty members to start building your teaching network.</div>
-            <button class="btn btn-primary" onclick="openAddFacultyModal()">+ Add Faculty</button>
-          </div>
+        <td colspan="8" style="padding: 32px 16px; text-align: center;">
+          ${renderEmptyState({ icon: '👩‍🏫', title: 'No faculty members registered yet', message: 'Add faculty members to start building your teaching network.' })}
         </td>
       </tr>
     `;
@@ -3644,7 +3605,7 @@ async function loadFacultyDirectory() {
 
   let html = '';
   facultyList.forEach(f => {
-    const statusBadge = (f.status || 'Active') === 'Active' ? '<span class="badge badge-success">ACTIVE</span>' : '<span class="badge badge-secondary">INACTIVE</span>';
+    const statusBadge = renderStatusBadge(f.status || 'Active');
     const cleanPhone = (f.phone || '').replace(/[^0-9]/g, '');
     const subjectBadges = formatSubjectBadges(f.subjects);
     const boardBadges = formatSyllabusBadges(f.syllabuses);
