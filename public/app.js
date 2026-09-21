@@ -357,6 +357,12 @@ function renderHeaderActionButtons() {
     container.innerHTML = `<button class="btn btn-primary" onclick="openModal('modal-academic-head')">+ Add Academic Head</button>`;
   } else if (currentView === 'faculty') {
     container.innerHTML = `<button class="btn btn-primary" onclick="openAddFacultyModal()">+ Add Faculty</button>`;
+  } else if (currentView === 'assessments') {
+    container.innerHTML = `
+      <button class="btn btn-outline" onclick="openScheduleClassModal()">+ Schedule Class</button>
+      <button class="btn btn-outline" onclick="openCreateFollowupModal()">+ Add Follow-up</button>
+      <button class="btn btn-primary" onclick="openScheduleAssessmentModal()">+ Schedule Assessment</button>
+    `;
   } else if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ACADEMIC_HEAD') {
     container.innerHTML = `
       <button class="btn btn-outline" onclick="openRegisterStudentModal()">+ Register Student</button>
@@ -3659,7 +3665,8 @@ function closeFacultyDrawer() {
 }
 
 function openAddFacultyModal() {
-  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
+  const role = currentUser?.role || 'ACADEMIC_HEAD';
+  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(role)) return;
 
   document.getElementById('fac-modal-title').innerText = 'Register New Faculty';
   const submitBtn = document.getElementById('fac-submit-btn');
@@ -3678,7 +3685,8 @@ function openAddFacultyModal() {
 }
 
 async function openEditFacultyModal(facultyId) {
-  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
+  const role = currentUser?.role || 'ACADEMIC_HEAD';
+  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(role)) return;
 
   const res = await fetchAPI(`/api/faculty/${facultyId}`);
   if (!res || !res.faculty) {
