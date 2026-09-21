@@ -54,14 +54,15 @@ function formatPercentage(val) {
 // SHARED UI COMPONENT RENDER HELPERS (DESIGN SYSTEM HARMONIZATION)
 // ==========================================================================
 
-function renderKPICard({ label, value, icon = '📊', colorClass = '', badgeText = '', badgeType = 'primary' }) {
+function renderKPICard({ label, title, value, icon = '📊', colorClass = '', badgeText = '', badgeType = 'primary' }) {
+  const cardLabel = label || title || 'Metric';
   return `
     <div class="kpi-card ${colorClass}">
       <div class="kpi-icon">${icon}</div>
       <div class="kpi-details">
-        <span class="kpi-label">${label}</span>
+        <span class="kpi-label">${escapeHTML(cardLabel)}</span>
         <div class="kpi-value">${value}</div>
-        ${badgeText ? `<span class="badge badge-${badgeType}" style="margin-top:4px; font-size:10px;">${badgeText}</span>` : ''}
+        ${badgeText ? `<span class="badge badge-${badgeType}" style="margin-top:4px; font-size:10px;">${escapeHTML(badgeText)}</span>` : ''}
       </div>
     </div>
   `;
@@ -82,18 +83,121 @@ function renderStatusBadge(status) {
     badgeClass = 'badge-primary';
   }
   
-  return `<span class="badge ${badgeClass}">${status}</span>`;
+  return `<span class="badge ${badgeClass}">${escapeHTML(status)}</span>`;
+}
+
+function renderControlBar({ searchId = '', searchPlaceholder = 'Search...', filtersHTML = '', actionButtonsHTML = '' }) {
+  return `
+    <div class="control-bar">
+      <div class="control-bar-group">
+        ${searchId ? `
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="${searchId}" class="search-input" placeholder="${escapeHTML(searchPlaceholder)}">
+          </div>
+        ` : ''}
+        ${filtersHTML}
+      </div>
+      ${actionButtonsHTML ? `<div class="control-bar-group">${actionButtonsHTML}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderDataTable({ columns = [], rowsHTML = '', emptyMessage = 'No records found.' }) {
+  const ths = columns.map(col => `<th>${escapeHTML(col)}</th>`).join('');
+  const bodyContent = rowsHTML.trim() || `<tr><td colspan="${columns.length || 1}" style="text-align:center; padding:24px; color:var(--text-secondary);">${escapeHTML(emptyMessage)}</td></tr>`;
+  return `
+    <div class="card table-card" style="padding:0; overflow:hidden;">
+      <table class="data-table">
+        <thead>
+          <tr>${ths}</tr>
+        </thead>
+        <tbody>
+          ${bodyContent}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderEmptyState({ icon = '📂', title = 'No Data Found', message = 'No records match the selected criteria.' }) {
   return `
-    <div class="report-empty-state" style="padding: 40px 20px; text-align: center;">
-      <div style="font-size: 40px; margin-bottom: 12px;">${icon}</div>
-      <h3 style="font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 6px;">${title}</h3>
-      <p style="font-size: 13px; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">${message}</p>
+    <div class="report-empty-state empty-state" style="padding: 48px 24px; text-align: center;">
+      <div style="font-size: 44px; margin-bottom: 12px;">${icon}</div>
+      <h3 style="font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 6px;">${escapeHTML(title)}</h3>
+      <p style="font-size: 13.5px; color: var(--text-secondary); max-width: 440px; margin: 0 auto; line-height: 1.5;">${escapeHTML(message)}</p>
     </div>
   `;
 }
+
+function renderLoadingState({ message = 'Loading workspace data...' } = {}) {
+  return `
+    <div class="loading-state" style="padding: 48px 24px; text-align: center; color: var(--text-secondary);">
+      <div style="font-size: 32px; margin-bottom: 12px; animation: spin 1s linear infinite; display: inline-block;">⌛</div>
+      <p style="font-size: 14px; font-weight: 600;">${escapeHTML(message)}</p>
+    </div>
+  `;
+}
+
+function renderErrorState({ message = 'An unexpected error occurred while loading data.' } = {}) {
+  return `
+    <div class="error-state" style="padding: 16px 20px; border-radius: var(--radius-md); background-color: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger); font-size: 13.5px; font-weight: 600; margin-bottom: 16px;">
+      ⚠️ ${escapeHTML(message)}
+    </div>
+  `;
+}
+
+function renderPageHeader({ title, subtitle, actionsHTML = '' }) {
+  return `
+    <div class="page-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div>
+        <h1 class="page-title" style="font-size:22px; font-weight:800; color:var(--text);">${escapeHTML(title)}</h1>
+        ${subtitle ? `<p class="page-subtitle" style="font-size:13px; color:var(--text-secondary);">${escapeHTML(subtitle)}</p>` : ''}
+      </div>
+      ${actionsHTML ? `<div class="page-actions" style="display:flex; gap:10px; align-items:center;">${actionsHTML}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderModal({ id, title, bodyHTML, footerHTML = '', maxWidth = '600px' }) {
+  return `
+    <div class="modal-overlay" id="${id}">
+      <div class="modal" style="max-width: ${maxWidth};">
+        <div class="modal-header">
+          <h3>${escapeHTML(title)}</h3>
+          <button type="button" class="modal-close-btn" onclick="closeModal('${id}')">✕</button>
+        </div>
+        <div class="modal-body">
+          ${bodyHTML}
+        </div>
+        ${footerHTML ? `<div class="modal-footer">${footerHTML}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderFormField({ label, inputHTML, helpText = '', errorText = '', required = false }) {
+  return `
+    <div class="form-group">
+      ${label ? `<label class="form-label">${escapeHTML(label)} ${required ? '<span style="color:var(--danger)">*</span>' : ''}</label>` : ''}
+      ${inputHTML}
+      ${helpText ? `<span class="form-help">${escapeHTML(helpText)}</span>` : ''}
+      ${errorText ? `<span class="form-error">${escapeHTML(errorText)}</span>` : ''}
+    </div>
+  `;
+}
+
+// Global window registration for render helpers
+window.renderKPICard = renderKPICard;
+window.renderStatusBadge = renderStatusBadge;
+window.renderControlBar = renderControlBar;
+window.renderDataTable = renderDataTable;
+window.renderEmptyState = renderEmptyState;
+window.renderLoadingState = renderLoadingState;
+window.renderErrorState = renderErrorState;
+window.renderPageHeader = renderPageHeader;
+window.renderModal = renderModal;
+window.renderFormField = renderFormField;
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[AUTH DEBUG] DOMContentLoaded event fired');
