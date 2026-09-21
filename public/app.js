@@ -1964,12 +1964,13 @@ async function loadHeadDashboard() {
     document.getElementById('head-breakdown-pending').innerText = rr.pending || 0;
     document.getElementById('head-breakdown-churned').innerText = rr.churned || 0;
 
-    // Churn Reasons Table
     const churnContainer = document.getElementById('head-churn-reasons-container');
-    const reasons = data.churn_reasons || [];
-    if (reasons.length === 0) {
-      churnContainer.innerHTML = '<div style="font-size:12px; color:#64748b; font-style:italic; padding:6px 0;">No student churn records reported for this period.</div>';
-    } else {
+    if (churnContainer) {
+      const rawReasons = data.churn_reasons || [];
+      const reasons = Array.isArray(rawReasons) ? rawReasons : (typeof rawReasons === 'object' ? Object.entries(rawReasons).map(([reason, count]) => ({ reason, count, percentage: 0 })) : []);
+      if (!reasons || reasons.length === 0) {
+        churnContainer.innerHTML = '<div style="font-size:12px; color:#64748b; font-style:italic; padding:6px 0;">No student churn records reported for this period.</div>';
+      } else {
       let html = `<table class="data-table" style="width:100%; font-size:12px;">
         <thead><tr style="background:#f8fafc;"><th>Churn Reason</th><th>Student Count</th><th>Share %</th></tr></thead><tbody>`;
       reasons.forEach(r => {
@@ -1981,6 +1982,7 @@ async function loadHeadDashboard() {
       });
       html += `</tbody></table>`;
       churnContainer.innerHTML = html;
+      }
     }
   }
 
@@ -3812,10 +3814,21 @@ function openWhatsAppFaculty(facultyName, facultyPhone, studentName, subject, wr
 }
 
 function escapeHTML(str) {
-  if (!str) return '';
-  return str.replace(/[&<>'"]/g, 
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>'"]/g, 
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'N/A';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (e) {
+    return String(dateStr);
+  }
 }
 
 // MONTHLY CLASS CALENDAR OPERATIONAL CONTROL PAGE HANDLERS
@@ -3914,7 +3927,8 @@ function renderMonthlyGrid(year, month, classesList) {
 
   // Group classes by date 'YYYY-MM-DD'
   const classesByDate = {};
-  classesList.forEach(c => {
+  const safeClassesList = Array.isArray(classesList) ? classesList : (typeof classesList === 'object' && classesList ? Object.values(classesList) : []);
+  safeClassesList.forEach(c => {
     if (!classesByDate[c.date]) classesByDate[c.date] = [];
     classesByDate[c.date].push(c);
   });
