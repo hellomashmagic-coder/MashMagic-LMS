@@ -2498,14 +2498,14 @@ async function loadSSCManagement() {
 
   const tbody = document.getElementById('ssc-table-body');
   if (res.sscs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px;">No SSC accounts created.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="8">${renderEmptyState({ icon: '👥', title: 'No SSC Accounts', message: 'No Student Success Coordinator accounts have been created yet.' })}</td></tr>`;
     return;
   }
 
   let html = '';
   res.sscs.forEach(s => {
     const isInactive = s.status === 'Inactive';
-    const statusBadge = isInactive ? '<span class="badge badge-danger">Inactive</span>' : '<span class="badge badge-success">Active</span>';
+    const statusBadge = renderStatusBadge(s.status || 'Active');
     const toggleAction = isInactive ? `<button class="btn btn-sm btn-success" onclick="toggleSSCStatus(${s.id}, 'Active')">Activate</button>` :
                                      `<button class="btn btn-sm btn-danger" onclick="toggleSSCStatus(${s.id}, 'Inactive')">Deactivate</button>`;
 
@@ -2544,7 +2544,7 @@ async function loadStudentAllocation() {
 
   const tbody = document.getElementById('allocation-table-body');
   if (res.students.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px;">No students found matching allocation filter.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6">${renderEmptyState({ icon: '📋', title: 'No Students Found', message: 'No students match the selected allocation filters.' })}</td></tr>`;
     return;
   }
 
@@ -2559,7 +2559,7 @@ async function loadStudentAllocation() {
         <td>${escapeHTML(s.grade)}</td>
         <td>${escapeHTML(s.program)}</td>
         <td>${sscBadge}</td>
-        <td><span class="badge badge-success">${s.status}</span></td>
+        <td>${renderStatusBadge(s.status || 'Active')}</td>
         <td>
           <button class="btn btn-sm btn-primary" onclick="openReassignStudentModal(${s.id}, '${escapeHTML(s.name)}', '${escapeHTML(s.ssc_name || 'Unassigned')}')">${actionLabel}</button>
         </td>
@@ -2578,7 +2578,7 @@ async function loadUnassignedStudents() {
 
   const tbody = document.getElementById('unassigned-table-body');
   if (res.students.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--success-text); font-weight:700;">✨ All students are currently assigned to an SSC!</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6">${renderEmptyState({ icon: '✨', title: 'All Students Assigned', message: 'All enrolled students are currently assigned to an SSC.' })}</td></tr>`;
     return;
   }
 
