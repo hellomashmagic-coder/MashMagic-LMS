@@ -2421,7 +2421,13 @@ async function loadSSCDashboard() {
 
   const scheduleContainer = document.getElementById('today-schedule-list');
   if (!data.today_schedule || data.today_schedule.length === 0) {
-    scheduleContainer.innerHTML = '<div class="empty-state">No classes scheduled for today.</div>';
+    scheduleContainer.innerHTML = `
+      <div class="report-empty-state" style="padding: 32px 16px;">
+        <div class="report-empty-icon">📅</div>
+        <div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 4px;">No classes scheduled for today</div>
+        <div style="font-size: 13px; color: #64748b;">Your schedule is clear for today.</div>
+      </div>
+    `;
   } else {
     let html = '';
     data.today_schedule.forEach(c => {
@@ -2464,7 +2470,13 @@ async function loadSSCDashboard() {
 
   const actionsContainer = document.getElementById('dashboard-pending-actions');
   if (!data.pending_actions || data.pending_actions.length === 0) {
-    actionsContainer.innerHTML = '<div class="empty-state">No pending actions requiring attention!</div>';
+    actionsContainer.innerHTML = `
+      <div class="report-empty-state" style="padding: 32px 16px;">
+        <div class="report-empty-icon">📌</div>
+        <div style="font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 4px;">No priority follow-ups</div>
+        <div style="font-size: 13px; color: #64748b;">All current actions are up to date.</div>
+      </div>
+    `;
   } else {
     let html = '';
     data.pending_actions.forEach(a => {
