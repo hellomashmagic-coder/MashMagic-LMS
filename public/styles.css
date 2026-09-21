@@ -238,6 +238,7 @@ html, body {
   font-weight: 500;
   border-radius: var(--radius-sm);
   transition: all 0.15s ease;
+  min-height: 44px;
 }
 
 .nav-item:hover {
@@ -1114,6 +1115,22 @@ html, body {
 
 .mobile-top-bar {
   display: none;
+}
+
+.mobile-nav-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 150;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.mobile-nav-drawer-overlay.mobile-drawer-open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 @media (max-width: 768px) {
