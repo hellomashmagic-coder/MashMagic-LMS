@@ -5027,20 +5027,20 @@ async function handleInstitutionSave(e) {
 async function loadAdminAcademicHeads() {
   const tbody = document.getElementById('admin-head-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading Academic Heads...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${renderLoadingState('Loading Academic Heads...')}</td></tr>`;
 
   try {
     const qSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'ACADEMIC_HEAD')));
     let html = '';
     qSnap.forEach(d => {
       const u = d.data();
-      const statusBadge = u.status === 'Suspended' ? 'badge-danger' : (u.status === 'Restricted' ? 'badge-warning' : 'badge-success');
+      const statusBadge = renderStatusBadge(u.status || 'Active');
       html += `
         <tr>
-          <td><strong>${u.name || u.displayName || 'Academic Head'}</strong></td>
-          <td>${u.email}</td>
-          <td>${u.phone || '-'}</td>
-          <td><span class="badge ${statusBadge}">${u.status || 'Active'}</span></td>
+          <td><strong>${escapeHTML(u.name || u.displayName || 'Academic Head')}</strong></td>
+          <td>${escapeHTML(u.email)}</td>
+          <td>${escapeHTML(u.phone || '-')}</td>
+          <td>${statusBadge}</td>
           <td>${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never'}</td>
           <td style="text-align: right;">
             <button class="btn btn-sm btn-outline" onclick="toggleUserRestriction('${d.id}', '${u.status || 'Active'}')">
@@ -5053,10 +5053,10 @@ async function loadAdminAcademicHeads() {
         </tr>
       `;
     });
-    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center;">No Academic Heads found. Click "+ Create Academic Head" to add one.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderEmptyState({ icon: '🎓', title: 'No Academic Heads found', message: 'Click "+ Create Academic Head" to register an administrator.' })}</td></tr>`;
   } catch (err) {
     console.error('Error loading academic heads:', err);
-    tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Failed to load Academic Heads: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderErrorState({ title: 'Failed to load Academic Heads', message: err.message })}</td></tr>`;
   }
 }
 
@@ -5092,19 +5092,20 @@ async function handleAcademicHeadSubmit(e) {
 async function loadAdminSSCs() {
   const tbody = document.getElementById('admin-ssc-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading SSCs...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${renderLoadingState('Loading SSCs...')}</td></tr>`;
 
   try {
     const qSnap = await getDocs(collection(db, 'sscs'));
     let html = '';
     qSnap.forEach(d => {
       const s = d.data();
+      const statusBadge = renderStatusBadge(s.status || 'Active');
       html += `
         <tr>
-          <td><strong>${s.name || s.ssc_name}</strong></td>
-          <td>${s.email || '-'}</td>
+          <td><strong>${escapeHTML(s.name || s.ssc_name)}</strong></td>
+          <td>${escapeHTML(s.email || '-')}</td>
           <td>${s.assigned_students_count || 0}</td>
-          <td><span class="badge badge-success">${s.status || 'Active'}</span></td>
+          <td>${statusBadge}</td>
           <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : 'Existing'}</td>
           <td style="text-align: right;">
             <button class="btn btn-sm btn-outline" onclick="openModal('modal-ssc')">Edit</button>
@@ -5112,9 +5113,9 @@ async function loadAdminSSCs() {
         </tr>
       `;
     });
-    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center;">No SSCs found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderEmptyState({ icon: '👥', title: 'No SSCs found', message: 'No Student Success Coordinators are currently registered.' })}</td></tr>`;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error loading SSCs</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderErrorState({ title: 'Error loading SSCs', message: err.message })}</td></tr>`;
   }
 }
 
@@ -5122,7 +5123,7 @@ async function loadAdminSSCs() {
 async function loadAdminFaculties() {
   const tbody = document.getElementById('admin-faculty-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading faculties...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${renderLoadingState('Loading faculties...')}</td></tr>`;
 
   try {
     const qSnap = await getDocs(collection(db, 'faculties'));
@@ -5130,22 +5131,23 @@ async function loadAdminFaculties() {
     qSnap.forEach(d => {
       const f = d.data();
       const subjectsStr = Array.isArray(f.subjects) ? f.subjects.join(', ') : (f.subjects || '-');
+      const statusBadge = renderStatusBadge(f.status || 'Active');
       html += `
         <tr>
-          <td><strong>${f.name}</strong></td>
-          <td>${subjectsStr}</td>
-          <td>${f.phone || '-'}</td>
-          <td><code>${f.wrapupToken || f.wrapup_token || 'N/A'}</code></td>
-          <td><span class="badge badge-success">${f.status || 'Active'}</span></td>
+          <td><strong>${escapeHTML(f.name)}</strong></td>
+          <td>${escapeHTML(subjectsStr)}</td>
+          <td>${escapeHTML(f.phone || '-')}</td>
+          <td><code>${escapeHTML(f.wrapupToken || f.wrapup_token || 'N/A')}</code></td>
+          <td>${statusBadge}</td>
           <td style="text-align: right;">
             <button class="btn btn-sm btn-outline" onclick="openFacultyDrawer(${d.id})">View Profile</button>
           </td>
         </tr>
       `;
     });
-    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center;">No faculties found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderEmptyState({ icon: '👩‍🏫', title: 'No faculties found', message: 'No faculty members are currently registered.' })}</td></tr>`;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error loading faculties</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderErrorState({ title: 'Error loading faculties', message: err.message })}</td></tr>`;
   }
 }
 
@@ -5153,7 +5155,7 @@ async function loadAdminFaculties() {
 async function loadAdminStudents() {
   const tbody = document.getElementById('admin-student-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading global student registry...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${renderLoadingState('Loading global student registry...')}</td></tr>`;
 
   try {
     const qSnap = await getDocs(collection(db, 'students'));
@@ -5166,29 +5168,32 @@ async function loadAdminStudents() {
       if (s.ssc_name) sscOptions.add(s.ssc_name);
 
       const safeName = (s.name || '').replace(/'/g, "\\'");
+      const statusBadge = renderStatusBadge(s.status || 'Active');
+      const sscBadge = s.ssc_name ? `<span class="badge badge-info">${escapeHTML(s.ssc_name)}</span>` : '<span class="badge badge-warning">Unassigned</span>';
+
       html += `
         <tr class="admin-student-row" data-name="${(s.name || '').toLowerCase()}" data-reg="${(s.register_number || '').toLowerCase()}" data-ssc="${s.ssc_name || ''}">
-          <td><code>${s.register_number}</code></td>
-          <td><strong>${s.name}</strong></td>
-          <td>${s.grade} (${s.curriculum || 'CBSE'})</td>
-          <td><span class="badge badge-info">${s.ssc_name}</span></td>
-          <td><span class="badge ${s.status === 'Inactive' ? 'badge-danger' : 'badge-success'}">${s.status || 'Active'}</span></td>
+          <td><code>${escapeHTML(s.register_number)}</code></td>
+          <td><strong>${escapeHTML(s.name)}</strong></td>
+          <td>${escapeHTML(s.grade)} (${escapeHTML(s.curriculum || 'CBSE')})</td>
+          <td>${sscBadge}</td>
+          <td>${statusBadge}</td>
           <td style="text-align: right;">
             <button class="btn btn-sm btn-outline" onclick="openStudentSSCReassignModal('${s.id}', '${safeName}')">Reassign SSC</button>
           </td>
         </tr>
       `;
     });
-    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center;">No students found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderEmptyState({ icon: '👨‍🎓', title: 'No students found', message: 'No student records exist in the global registry.' })}</td></tr>`;
 
     if (sscSelect && sscOptions.size > 0) {
       let optHtml = '<option value="ALL">All SSCs</option>';
-      sscOptions.forEach(ssc => { optHtml += `<option value="${ssc}">${ssc}</option>`; });
+      sscOptions.forEach(ssc => { optHtml += `<option value="${escapeHTML(ssc)}">${escapeHTML(ssc)}</option>`; });
       sscSelect.innerHTML = optHtml;
     }
   } catch (err) {
     console.error('Error loading global students:', err);
-    tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Failed to load students: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderErrorState({ title: 'Failed to load students', message: err.message })}</td></tr>`;
   }
 }
 
@@ -5260,20 +5265,22 @@ async function handleStudentSSCReassignSubmit(e) {
 async function loadAdminUsersMatrix() {
   const tbody = document.getElementById('admin-users-matrix-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading User Matrix...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${renderLoadingState('Loading User Matrix...')}</td></tr>`;
 
   try {
     const qSnap = await getDocs(collection(db, 'users'));
     let html = '';
     qSnap.forEach(d => {
       const u = d.data();
-      const statusClass = u.status === 'Suspended' ? 'badge-danger' : (u.status === 'Restricted' ? 'badge-warning' : 'badge-success');
+      const statusBadge = renderStatusBadge(u.status || 'Active');
+      const roleBadge = u.role === 'SUPER_ADMIN' ? '<span class="badge badge-purple">SUPER_ADMIN</span>' :
+                       (u.role === 'ACADEMIC_HEAD' ? '<span class="badge badge-primary">ACADEMIC_HEAD</span>' : `<span class="badge badge-info">${escapeHTML(u.role || 'USER')}</span>`);
       html += `
         <tr>
-          <td><strong>${u.email}</strong></td>
-          <td>${u.name || u.displayName || '-'}</td>
-          <td><span class="badge ${u.role === 'SUPER_ADMIN' ? 'badge-purple' : (u.role === 'ACADEMIC_HEAD' ? 'badge-primary' : 'badge-info')}">${u.role}</span></td>
-          <td><span class="badge ${statusClass}">${u.status || 'Active'}</span></td>
+          <td><strong>${escapeHTML(u.email)}</strong></td>
+          <td>${escapeHTML(u.name || u.displayName || '-')}</td>
+          <td>${roleBadge}</td>
+          <td>${statusBadge}</td>
           <td>${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'N/A'}</td>
           <td style="text-align: right;">
             ${u.role === 'SUPER_ADMIN' ? '<span style="font-size:12px; color:#64748b;">System Admin</span>' : `
@@ -5288,9 +5295,9 @@ async function loadAdminUsersMatrix() {
         </tr>
       `;
     });
-    tbody.innerHTML = html;
+    tbody.innerHTML = html || `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderEmptyState({ icon: '🔐', title: 'No Users Found', message: 'No registered user accounts found in the access matrix.' })}</td></tr>`;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error loading user matrix</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderErrorState({ title: 'Error loading user matrix', message: err.message })}</td></tr>`;
   }
 }
 
@@ -5445,7 +5452,7 @@ async function saveCurrentFormConfig() {
 async function loadAdminAuditLogs() {
   const tbody = document.getElementById('admin-audit-tbody');
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Loading Audit Logs...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">${renderLoadingState('Loading Audit Logs...')}</td></tr>`;
 
   try {
     const qSnap = await getDocs(query(collection(db, 'auditLogs'), orderBy('timestamp', 'desc')));
@@ -5456,18 +5463,18 @@ async function loadAdminAuditLogs() {
       html += `
         <tr class="audit-log-row" data-search="${(a.performedByEmail + ' ' + a.action + ' ' + a.targetType).toLowerCase()}">
           <td><span style="font-size:11px; font-family:monospace;">${new Date(a.timestamp).toLocaleString()}</span></td>
-          <td><strong>${a.performedByEmail || 'System'}</strong></td>
-          <td><span class="badge badge-purple">${a.performedByRole || 'SYS'}</span></td>
-          <td><span class="badge badge-info">${a.action}</span></td>
-          <td><code>${a.targetType}:${a.targetId || '-'}</code></td>
+          <td><strong>${escapeHTML(a.performedByEmail || 'System')}</strong></td>
+          <td><span class="badge badge-purple">${escapeHTML(a.performedByRole || 'SYS')}</span></td>
+          <td><span class="badge badge-info">${escapeHTML(a.action)}</span></td>
+          <td><code>${escapeHTML(a.targetType)}:${escapeHTML(a.targetId || '-')}</code></td>
           <td style="font-size:12px; color:#475569;">${safeDetails}</td>
         </tr>
       `;
     });
-    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center;">No audit logs recorded yet.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderEmptyState({ icon: '📋', title: 'No audit logs recorded', message: 'System audit logs will record administrative events as they occur.' })}</td></tr>`;
   } catch (err) {
     console.error('Error loading audit logs:', err);
-    tbody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Error loading audit logs: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center;">${renderErrorState({ title: 'Error loading audit logs', message: err.message })}</td></tr>`;
   }
 }
 
