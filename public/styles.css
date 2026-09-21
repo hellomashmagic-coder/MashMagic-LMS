@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MASH MAGIC ACADEMIC LMS — ORIGINAL MVP RESTORED DESIGN SYSTEM
+   MASH MAGIC ACADEMIC LMS — PHASE 1 DESIGN SYSTEM FOUNDATION
    ========================================================================== */
 
 :root {
@@ -7,6 +7,7 @@
 
   /* Primary Interactive Color (Original MVP Vibrant Indigo / Purple) */
   --primary: #4F46E5;
+  --primary-hover: #4338CA;
   --primary-dark: #4338CA;
   --primary-light: #EEF2FF;
   --primary-border: #C7D2FE;
@@ -35,7 +36,24 @@
   --border: #E2E8F0;
   --border-focus: #4F46E5;
 
-  /* Specific Action Colors */
+  /* Semantic Status Colors */
+  --success: #166534;
+  --success-bg: #DCFCE7;
+  --success-border: #BBF7D0;
+
+  --warning: #92400E;
+  --warning-bg: #FEF3C7;
+  --warning-border: #FDE68A;
+
+  --danger: #991B1B;
+  --danger-bg: #FEE2E2;
+  --danger-border: #FCA5A5;
+
+  --info: #0369A1;
+  --info-bg: #E0F2FE;
+  --info-border: #BAE6FD;
+
+  /* Action Colors */
   --green-whatsapp: #25D366;
   --green-whatsapp-hover: #20BD5A;
 
@@ -51,8 +69,18 @@
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.1);
   --shadow-bottom-nav: 0 -4px 16px rgba(0, 0, 0, 0.08);
 
+  /* Layout & Sizing */
   --sidebar-width: 250px;
   --header-height: 64px;
+  --input-height: 38px;
+  --btn-height: 38px;
+
+  /* Spacing Scale */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
 }
 
 * {
