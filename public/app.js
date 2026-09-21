@@ -14,6 +14,42 @@ let cachedFaculty = [];
 let cachedSSCs = [];
 let selectedStudentId = null;
 
+// SAFE FORMATTERS FOR DATA INTEGRITY
+function formatSubjects(subj) {
+  if (!subj) return '-';
+  if (typeof subj === 'string') {
+    if (subj.startsWith('[') || subj.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(subj);
+        return formatSubjects(parsed);
+      } catch (e) {
+        return subj;
+      }
+    }
+    return subj;
+  }
+  if (Array.isArray(subj)) {
+    if (subj.length === 0) return '-';
+    return subj.map(s => {
+      if (!s) return '';
+      if (typeof s === 'string') return s;
+      if (typeof s === 'object') return s.subject || s.name || s.title || String(s);
+      return String(s);
+    }).filter(Boolean).join(' • ');
+  }
+  if (typeof subj === 'object') {
+    return subj.subject || subj.name || subj.title || '-';
+  }
+  return String(subj);
+}
+
+function formatPercentage(val) {
+  if (val === null || val === undefined || val === 'N/A') return 'N/A';
+  let str = String(val).trim();
+  str = str.replace(/%+$/, '');
+  return `${str}%`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[AUTH DEBUG] DOMContentLoaded event fired');
   const loginForm = document.getElementById('form-login');
@@ -1971,10 +2007,10 @@ async function loadHeadDashboard() {
     const rr = data.renewal_retention;
     document.getElementById('head-retention-eligible').innerText = rr.package_ending || 0;
     
-    const renRate = rr.renewal_rate !== 'N/A' ? `${rr.renewal_rate}%` : 'N/A';
+    const renRate = formatPercentage(rr.renewal_rate);
     document.getElementById('head-renewal-rate').innerText = renRate;
 
-    const churnRate = rr.churn_rate !== 'N/A' ? `${rr.churn_rate}%` : 'N/A';
+    const churnRate = formatPercentage(rr.churn_rate);
     document.getElementById('head-churn-rate').innerText = churnRate;
 
     document.getElementById('head-breakdown-renewed').innerText = rr.renewed || 0;
@@ -1994,7 +2030,7 @@ async function loadHeadDashboard() {
         html += `<tr>
           <td><strong style="color:#b91c1c;">${escapeHTML(r.reason)}</strong></td>
           <td>${r.count}</td>
-          <td>${r.percentage}%</td>
+          <td>${formatPercentage(r.percentage)}</td>
         </tr>`;
       });
       html += `</tbody></table>`;
@@ -2009,11 +2045,11 @@ async function loadHeadDashboard() {
   // 5. Class Operations & Scheduling Performance
   if (data.class_operations) {
     const co = data.class_operations;
-    document.getElementById('head-delivery-rate').innerText = co.delivery_rate !== 'N/A' ? `${co.delivery_rate}%` : 'N/A';
-    document.getElementById('head-reschedule-rate').innerText = co.rescheduling_rate !== 'N/A' ? `${co.rescheduling_rate}%` : 'N/A';
-    document.getElementById('head-postpone-rate').innerText = co.postponement_rate !== 'N/A' ? `${co.postponement_rate}%` : 'N/A';
-    document.getElementById('head-cancel-rate').innerText = co.cancellation_rate !== 'N/A' ? `${co.cancellation_rate}%` : 'N/A';
-    document.getElementById('head-noshow-rate').innerText = co.no_show_rate !== 'N/A' ? `${co.no_show_rate}%` : 'N/A';
+    document.getElementById('head-delivery-rate').innerText = formatPercentage(co.delivery_rate);
+    document.getElementById('head-reschedule-rate').innerText = formatPercentage(co.rescheduling_rate);
+    document.getElementById('head-postpone-rate').innerText = formatPercentage(co.postponement_rate);
+    document.getElementById('head-cancel-rate').innerText = formatPercentage(co.cancellation_rate);
+    document.getElementById('head-noshow-rate').innerText = formatPercentage(co.no_show_rate);
 
     document.getElementById('head-class-total-scheduled').innerText = co.scheduled || 0;
     document.getElementById('head-class-conducted').innerText = co.conducted || 0;
@@ -2025,11 +2061,11 @@ async function loadHeadDashboard() {
 
   // 6. Attendance & Session Reporting
   if (data.attendance) {
-    document.getElementById('head-attendance-rate').innerText = data.attendance.student_attendance_rate !== 'N/A' ? `${data.attendance.student_attendance_rate}%` : 'N/A';
+    document.getElementById('head-attendance-rate').innerText = formatPercentage(data.attendance.student_attendance_rate);
   }
   if (data.session_reporting) {
     const sr = data.session_reporting;
-    document.getElementById('head-verification-rate').innerText = sr.verification_rate !== 'N/A' ? `${sr.verification_rate}%` : 'N/A';
+    document.getElementById('head-verification-rate').innerText = formatPercentage(sr.verification_rate);
     const hrs = Math.floor((sr.total_verified_minutes || 0) / 60);
     const mins = (sr.total_verified_minutes || 0) % 60;
     document.getElementById('head-verified-minutes').innerText = `${hrs} hrs ${mins} mins`;
@@ -2197,7 +2233,7 @@ function renderHeadUpcomingPackages(packagesList) {
       <tr>
         <td><strong>${escapeHTML(p.name)}</strong><br><small style="color:#64748b;">Reg: ${escapeHTML(p.register_number || '-')}</small></td>
         <td>${escapeHTML(p.parent_name || '-')}<br><small style="color:#64748b;">${escapeHTML(p.parent_phone || '-')}</small></td>
-        <td>${escapeHTML(p.subjects || p.program || '-')}</td>
+        <td>${escapeHTML(formatSubjects(p.subjects || p.program))}</td>
         <td style="${dateStyle}">${formatDate(p.end_date)}</td>
         <td>${escapeHTML(p.ssc_name || 'Unassigned')}</td>
         <td>${statusBadge}</td>

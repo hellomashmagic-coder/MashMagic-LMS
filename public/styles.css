@@ -1166,3 +1166,161 @@ html, body {
     font-weight: 700;
   }
 }
+
+/* ==========================================================================
+   GLOBAL DESIGN SYSTEM ENHANCEMENTS (MASH MAGIC LMS)
+   ========================================================================== */
+
+/* 1. KPI GRID VARIANTS & ALIASES */
+.kpi-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .kpi-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .kpi-grid-4 {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.kpi-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kpi-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text, #1e293b);
+  line-height: 1.1;
+}
+
+/* 2. SUPER ADMIN SEGMENTED TAB NAVIGATION */
+.admin-tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-tab-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.admin-tab-btn.active {
+  background: var(--primary, #4f46e5);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+}
+
+/* 3. REPORT CARDS & EMPTY STATES */
+.report-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .report-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.report-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-card-sub {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.report-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+}
+
+.report-empty-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+/* 4. FORM LAYOUT & BADGES */
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.badge-purple {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
