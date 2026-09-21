@@ -355,7 +355,7 @@ function renderHeaderActionButtons() {
 
   if (currentView === 'admin') {
     container.innerHTML = `<button class="btn btn-primary" onclick="openModal('modal-academic-head')">+ Add Academic Head</button>`;
-  } else if (currentView === 'faculty' && (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ACADEMIC_HEAD')) {
+  } else if (currentView === 'faculty') {
     container.innerHTML = `<button class="btn btn-primary" onclick="openAddFacultyModal()">+ Add Faculty</button>`;
   } else if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ACADEMIC_HEAD') {
     container.innerHTML = `
@@ -2505,12 +2505,37 @@ async function loadStudents() {
   const query = document.getElementById('students-search-input')?.value.trim() || '';
   const status = document.getElementById('students-status-filter')?.value || '';
   
+  const tbody = document.getElementById('students-table-body');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="padding: 24px; text-align: center;">
+          <div class="skeleton-loader">
+            <div style="height: 18px; width: 100%; background: #e2e8f0; border-radius: 4px; margin-bottom: 8px;"></div>
+            <div style="height: 18px; width: 100%; background: #f1f5f9; border-radius: 4px;"></div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   const res = await fetchAPI(`/api/students?q=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}`);
   if (!res || !res.students) return;
 
-  const tbody = document.getElementById('students-table-body');
+  if (!tbody) return;
+
   if (res.students.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 24px;">No students found matching filters.</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="padding: 40px 16px; text-align: center;">
+          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
+            <div class="report-empty-icon" style="font-size: 36px; margin-bottom: 12px;">👨‍🎓</div>
+            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Students Assigned</div>
+            <div style="font-size: 13.5px; color: #64748b;">Students assigned to you will appear here.</div>
+          </div>
+        </td>
+      </tr>
+    `;
     return;
   }
 
@@ -2524,12 +2549,13 @@ async function loadStudents() {
     const sscBadge = s.ssc_name ? `<span class="badge badge-info">${escapeHTML(s.ssc_name)}</span>` : '<span class="badge badge-warning">Unassigned</span>';
     const regNo = s.register_number || s.register_no || 'MM-2026-0000';
     const progName = s.package_name || s.program || 'Standard Academic';
-    const subjectsStr = Array.isArray(s.subjects) ? s.subjects.map(sub => typeof sub === 'object' ? sub.subject : sub).join(', ') : (s.subjects || '-');
+    const subjectsStr = formatSubjects(s.subjects);
     const facultyName = s.primary_faculty_name || s.faculty_name || 'Assigned Faculty';
     const completed = s.completed_classes !== undefined ? s.completed_classes : (s.sessions_completed || 0);
     const total = s.total_classes !== undefined ? s.total_classes : (s.session_package || 24);
     const remaining = s.remaining_classes !== undefined ? s.remaining_classes : Math.max(0, total - completed);
     const studentIdParam = typeof s.id === 'string' ? `'${s.id}'` : s.id;
+    const progressPct = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
 
     html += `
       <tr class="clickable-row" onclick="openStudentDrawer(${studentIdParam})">
@@ -2543,8 +2569,13 @@ async function loadStudents() {
         <td>${escapeHTML(facultyName)}</td>
         <td>${sscBadge}</td>
         <td>
-          <strong>${completed} / ${total}</strong> completed
-          <br><small style="color:var(--primary); font-weight:600">${remaining} remaining</small>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; color:#1e293b; margin-bottom:4px;">
+            <span>${completed} / ${total} Sessions</span>
+            <span style="color:var(--primary); font-size:11px;">${progressPct}%</span>
+          </div>
+          <div style="width:100%; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+            <div style="width:${progressPct}%; height:100%; background:var(--primary, #4f46e5); border-radius:3px;"></div>
+          </div>
         </td>
         <td>${s.next_class ? escapeHTML(s.next_class) : '<span style="color:var(--text-light)">None scheduled</span>'}</td>
         <td>${statusBadge}</td>
@@ -3042,25 +3073,49 @@ async function loadFacultyDirectory() {
   const grade = document.getElementById('faculty-grade-filter')?.value || '';
   const status = document.getElementById('faculty-status-filter')?.value || '';
 
+  const tbody = document.getElementById('faculty-table-body');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="padding: 24px; text-align: center;">
+          <div class="skeleton-loader">
+            <div style="height: 18px; width: 100%; background: #e2e8f0; border-radius: 4px; margin-bottom: 8px;"></div>
+            <div style="height: 18px; width: 100%; background: #f1f5f9; border-radius: 4px;"></div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   const res = await fetchAPI(`/api/faculty?q=${encodeURIComponent(query)}&subject=${encodeURIComponent(subject)}&syllabus=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&status=${encodeURIComponent(status)}`);
   if (!res || !res.faculty) return;
 
-  const tbody = document.getElementById('faculty-table-body');
   if (!tbody) return;
 
   if (res.faculty.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color:var(--text-muted);">No faculty records found matching filters.</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="padding: 40px 16px; text-align: center;">
+          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
+            <div class="report-empty-icon" style="font-size: 36px; margin-bottom: 12px;">👩‍🏫</div>
+            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Faculty Found</div>
+            <div style="font-size: 13.5px; color: #64748b;">No faculty records match the selected filters or search terms.</div>
+          </div>
+        </td>
+      </tr>
+    `;
     return;
   }
 
-  const isHead = currentUser.role === 'ACADEMIC_HEAD';
+  const canEdit = ['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role);
   const headActions = document.getElementById('faculty-head-actions');
-  if (headActions) headActions.style.display = isHead ? 'block' : 'none';
+  if (headActions) headActions.style.display = canEdit ? 'block' : 'none';
 
   let html = '';
   res.faculty.forEach(f => {
     const statusBadge = f.status === 'Active' ? '<span class="badge badge-success">ACTIVE</span>' : '<span class="badge badge-secondary">INACTIVE</span>';
     const cleanPhone = (f.phone || '').replace(/[^0-9]/g, '');
+    const subjectsStr = formatSubjects(f.subjects);
 
     html += `
       <tr class="clickable-row" onclick="openFacultyDrawer(${f.id})">
@@ -3075,7 +3130,7 @@ async function loadFacultyDirectory() {
             <button class="btn btn-sm btn-whatsapp" onclick="event.stopPropagation(); openDirectWhatsApp('${cleanPhone}', 'Hello ${escapeHTML(f.name)}, regarding Mash Magic class schedule...')" style="font-size:11px; padding:2px 6px;">📱 WhatsApp</button>
           </div>
         </td>
-        <td>${escapeHTML(f.subjects)}</td>
+        <td>${escapeHTML(subjectsStr)}</td>
         <td>${escapeHTML(f.syllabuses || 'CBSE, ICSE')}</td>
         <td><small style="color:var(--text-muted);">${escapeHTML(f.grades || 'Grade 6–10')}</small></td>
         <td><strong>${f.active_students || 0}</strong> active</td>
@@ -3083,7 +3138,7 @@ async function loadFacultyDirectory() {
         <td>
           <div style="display:flex; gap:4px;">
             <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openFacultyDrawer(${f.id})">View Profile</button>
-            ${isHead ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openEditFacultyModal(${f.id})">Edit</button>` : ''}
+            ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openEditFacultyModal(${f.id})">Edit</button>` : ''}
           </div>
         </td>
       </tr>
@@ -3115,8 +3170,9 @@ async function openFacultyDrawer(facultyId) {
   }
 
   const f = res.faculty;
-  const isHead = currentUser.role === 'ACADEMIC_HEAD';
+  const canEdit = ['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role);
   const cleanPhone = (f.phone || '').replace(/[^0-9]/g, '');
+  const subjectsStr = formatSubjects(f.subjects);
 
   document.getElementById('drawer-faculty-name').innerText = f.name;
   document.getElementById('drawer-faculty-code').innerText = f.faculty_code || 'FAC-2026-XXXX';
@@ -3143,7 +3199,7 @@ async function openFacultyDrawer(facultyId) {
     <div class="profile-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h4 style="margin:0;">Faculty Information</h4>
-        ${isHead ? `<button class="btn btn-sm btn-primary" onclick="openEditFacultyModal(${f.id})">Edit Profile</button>` : ''}
+        ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="openEditFacultyModal(${f.id})">Edit Profile</button>` : ''}
       </div>
       <div class="info-grid">
         <div class="info-item"><span class="info-label">Faculty Code</span><span class="info-value" style="font-family:monospace; font-weight:800; color:var(--primary);">${escapeHTML(f.faculty_code || 'FAC-2026-XXXX')}</span></div>
@@ -3161,7 +3217,7 @@ async function openFacultyDrawer(facultyId) {
       <div style="display:flex; flex-direction:column; gap:10px;">
         <div style="padding:10px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0;">
           <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">SUBJECTS CAN TEACH</div>
-          <div style="font-size:14px; font-weight:700; margin-top:4px; color:var(--text-dark);">${escapeHTML(f.subjects)}</div>
+          <div style="font-size:14px; font-weight:700; margin-top:4px; color:var(--text-dark);">${escapeHTML(subjectsStr)}</div>
         </div>
         <div style="padding:10px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0;">
           <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">SYLLABUS / BOARDS CAN TEACH</div>
@@ -3225,7 +3281,7 @@ function closeFacultyDrawer() {
 }
 
 function openAddFacultyModal() {
-  if (currentUser.role !== 'ACADEMIC_HEAD') return;
+  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
 
   document.getElementById('fac-modal-title').innerText = 'Register New Faculty';
   document.getElementById('fac-submit-btn').innerText = 'Register Faculty';
@@ -3242,7 +3298,7 @@ function openAddFacultyModal() {
 }
 
 async function openEditFacultyModal(facultyId) {
-  if (currentUser.role !== 'ACADEMIC_HEAD') return;
+  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
 
   const res = await fetchAPI(`/api/faculty/${facultyId}`);
   if (!res || !res.faculty) {
@@ -3278,7 +3334,7 @@ async function openEditFacultyModal(facultyId) {
 
 async function handleFacultyFormSubmit(e) {
   e.preventDefault();
-  if (currentUser.role !== 'ACADEMIC_HEAD') return;
+  if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
 
   const facId = document.getElementById('fac-id').value;
   
