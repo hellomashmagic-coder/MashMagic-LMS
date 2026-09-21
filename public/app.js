@@ -2880,27 +2880,61 @@ function closeModal(modalId) {
 }
 
 function openCreateSSCModal() {
+  const pwdInput = document.getElementById('cssc-password');
+  if (pwdInput) pwdInput.type = 'password';
   document.getElementById('modal-create-ssc')?.classList.add('active');
+}
+
+function toggleSSCPasswordVisibility() {
+  const pwdInput = document.getElementById('cssc-password');
+  if (!pwdInput) return;
+  const isPassword = pwdInput.type === 'password';
+  pwdInput.type = isPassword ? 'text' : 'password';
 }
 
 async function handleCreateSSCSubmit(e) {
   e.preventDefault();
+  const nameInput = document.getElementById('cssc-name');
+  const emailInput = document.getElementById('cssc-email');
+  const phoneInput = document.getElementById('cssc-phone');
+  const passwordInput = document.getElementById('cssc-password');
+  const submitBtn = document.getElementById('cssc-submit-btn');
+
+  if (!nameInput?.value.trim() || !emailInput?.value.trim() || !phoneInput?.value.trim() || !passwordInput?.value.trim()) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+
   const data = {
-    name: document.getElementById('cssc-name').value,
-    email: document.getElementById('cssc-email').value,
-    phone: document.getElementById('cssc-phone').value,
-    password: document.getElementById('cssc-password').value,
-    status: document.getElementById('cssc-status').value
+    name: nameInput.value.trim(),
+    email: emailInput.value.trim(),
+    phone: phoneInput.value.trim(),
+    password: passwordInput.value.trim(),
+    status: document.getElementById('cssc-status')?.value || 'Active'
   };
 
-  const res = await fetchAPI('/api/users/sscs', 'POST', data);
-  if (res && res.success) {
-    closeModal('modal-create-ssc');
-    alert('SSC Account created successfully!');
-    loadSSCManagement();
-    loadSSCListForDropdowns();
-  } else {
-    alert(res?.error || 'Failed to create SSC account.');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account...';
+  }
+
+  try {
+    const res = await fetchAPI('/api/users/sscs', 'POST', data);
+    if (res && res.success) {
+      closeModal('modal-create-ssc');
+      alert('SSC Account created successfully!');
+      loadSSCManagement();
+      loadSSCListForDropdowns();
+    } else {
+      alert(res?.error || 'Failed to create SSC account.');
+    }
+  } catch (err) {
+    alert('Error creating SSC account: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create SSC Account';
+    }
   }
 }
 
@@ -3108,6 +3142,84 @@ async function restoreStudent(studentId) {
 }
 
 // 6B. FACULTY MANAGEMENT & DIRECTORY
+function formatSubjectBadges(subj) {
+  if (!subj) return '<span class="badge-chip badge-chip-gray">-</span>';
+  let list = [];
+  if (Array.isArray(subj)) {
+    list = subj.map(s => (typeof s === 'object' ? s.subject || s.name || String(s) : String(s)));
+  } else if (typeof subj === 'string') {
+    if (subj.startsWith('[')) {
+      try { list = JSON.parse(subj); } catch(e) { list = subj.split(',').map(s => s.trim()); }
+    } else {
+      list = subj.split(',').map(s => s.trim());
+    }
+  }
+  list = list.filter(Boolean);
+  if (list.length === 0) return '<span class="badge-chip badge-chip-gray">-</span>';
+
+  if (list.length <= 2) {
+    return list.map(s => `<span class="badge-chip badge-chip-purple">${escapeHTML(s)}</span>`).join('');
+  } else {
+    const shown = list.slice(0, 2);
+    const extra = list.length - 2;
+    return shown.map(s => `<span class="badge-chip badge-chip-purple">${escapeHTML(s)}</span>`).join('') +
+           `<span class="badge-more" title="${escapeHTML(list.slice(2).join(', '))}">+${extra}</span>`;
+  }
+}
+
+function formatSyllabusBadges(syl) {
+  if (!syl) return '<span class="badge-chip badge-chip-blue">CBSE</span>';
+  const list = (typeof syl === 'string' ? syl.split(',') : (Array.isArray(syl) ? syl : [syl])).map(s => String(s).trim()).filter(Boolean);
+  if (list.length === 0) return '<span class="badge-chip badge-chip-blue">CBSE</span>';
+  return list.map(s => `<span class="badge-chip badge-chip-blue">${escapeHTML(s)}</span>`).join('');
+}
+
+function formatGradesText(grd) {
+  if (!grd) return 'Grade 6–10';
+  const list = (typeof grd === 'string' ? grd.split(',') : (Array.isArray(grd) ? grd : [grd])).map(g => String(g).trim()).filter(Boolean);
+  if (list.length === 0) return 'Grade 6–10';
+  const nums = list.map(g => parseInt(g.replace(/[^0-9]/g, ''))).filter(n => !isNaN(n)).sort((a,b) => a-b);
+  if (nums.length > 2 && nums[nums.length - 1] - nums[0] === nums.length - 1) {
+    return `Grade ${nums[0]}–${nums[nums.length - 1]}`;
+  }
+  return list.map(g => g.replace('Grade ', '')).join(', ');
+}
+
+function updateFacultyCapabilitySummary() {
+  const selectedSubjects = Array.from(document.querySelectorAll('input[name="fac_subject"]:checked')).map(cb => {
+    cb.closest('.capability-chip')?.classList.add('selected');
+    return cb.value;
+  });
+  document.querySelectorAll('input[name="fac_subject"]:not(:checked)').forEach(cb => {
+    cb.closest('.capability-chip')?.classList.remove('selected');
+  });
+
+  const selectedSyllabuses = Array.from(document.querySelectorAll('input[name="fac_syllabus"]:checked')).map(cb => {
+    cb.closest('.capability-chip')?.classList.add('selected');
+    return cb.value;
+  });
+  document.querySelectorAll('input[name="fac_syllabus"]:not(:checked)').forEach(cb => {
+    cb.closest('.capability-chip')?.classList.remove('selected');
+  });
+
+  const selectedGrades = Array.from(document.querySelectorAll('input[name="fac_grade"]:checked')).map(cb => {
+    cb.closest('.capability-chip')?.classList.add('selected');
+    return cb.value;
+  });
+  document.querySelectorAll('input[name="fac_grade"]:not(:checked)').forEach(cb => {
+    cb.closest('.capability-chip')?.classList.remove('selected');
+  });
+
+  const subjSummary = document.getElementById('fac-summary-subjects');
+  if (subjSummary) subjSummary.textContent = selectedSubjects.length > 0 ? selectedSubjects.join(', ') : 'None selected';
+
+  const boardSummary = document.getElementById('fac-summary-boards');
+  if (boardSummary) boardSummary.textContent = selectedSyllabuses.length > 0 ? selectedSyllabuses.join(', ') : 'None selected';
+
+  const gradeSummary = document.getElementById('fac-summary-grades');
+  if (gradeSummary) gradeSummary.textContent = selectedGrades.length > 0 ? selectedGrades.map(g => g.replace('Grade ', '')).join(', ') : 'None selected';
+}
+
 async function loadFacultyDirectory() {
   const query = document.getElementById('faculty-search-input')?.value.trim() || '';
   const subject = document.getElementById('faculty-subject-filter')?.value || '';
@@ -3119,29 +3231,74 @@ async function loadFacultyDirectory() {
   if (tbody) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="padding: 24px; text-align: center;">
+        <td colspan="8" style="padding: 32px 16px; text-align: center;">
           <div class="skeleton-loader">
-            <div style="height: 18px; width: 100%; background: #e2e8f0; border-radius: 4px; margin-bottom: 8px;"></div>
-            <div style="height: 18px; width: 100%; background: #f1f5f9; border-radius: 4px;"></div>
+            <div style="height: 18px; width: 80%; background: #e2e8f0; border-radius: 4px; margin: 0 auto 10px auto;"></div>
+            <div style="height: 18px; width: 60%; background: #f1f5f9; border-radius: 4px; margin: 0 auto;"></div>
           </div>
         </td>
       </tr>
     `;
   }
 
-  const res = await fetchAPI(`/api/faculty?q=${encodeURIComponent(query)}&subject=${encodeURIComponent(subject)}&syllabus=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&status=${encodeURIComponent(status)}`);
+  let res;
+  try {
+    res = await fetchAPI(`/api/faculty?q=${encodeURIComponent(query)}&subject=${encodeURIComponent(subject)}&syllabus=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&status=${encodeURIComponent(status)}`);
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="padding: 40px 16px; text-align: center;">
+            <div class="directory-empty-container" style="max-width: 400px; margin: 0 auto; box-shadow: none;">
+              <div class="directory-empty-icon" style="color: #ef4444;">⚠️</div>
+              <div class="directory-empty-title">Unable to load faculty directory</div>
+              <div class="directory-empty-text">There was a network or server issue retrieving faculty records.</div>
+              <button class="btn btn-primary" onclick="loadFacultyDirectory()">Retry</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    return;
+  }
+
   if (!res || !res.faculty) return;
+
+  const facultyList = res.faculty;
+  const activeFacultyCount = facultyList.filter(f => (f.status || 'Active') === 'Active').length;
+  const totalStudentsCount = facultyList.reduce((acc, f) => acc + (parseInt(f.active_students) || 0), 0);
+
+  const allSubjSet = new Set();
+  facultyList.forEach(f => {
+    const subs = (f.subjects || '').split(',').map(s => s.trim()).filter(Boolean);
+    subs.forEach(s => allSubjSet.add(s));
+  });
+  const subjectsCount = allSubjSet.size || (facultyList.length > 0 ? allSubjSet.size : 0);
+  const availableCount = activeFacultyCount;
+
+  const statActiveFac = document.getElementById('dir-stat-active-faculty');
+  if (statActiveFac) statActiveFac.textContent = activeFacultyCount;
+
+  const statActiveStud = document.getElementById('dir-stat-active-students');
+  if (statActiveStud) statActiveStud.textContent = totalStudentsCount;
+
+  const statSubj = document.getElementById('dir-stat-subjects');
+  if (statSubj) statSubj.textContent = subjectsCount;
+
+  const statAvail = document.getElementById('dir-stat-available');
+  if (statAvail) statAvail.textContent = availableCount;
 
   if (!tbody) return;
 
-  if (res.faculty.length === 0) {
+  if (facultyList.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="8" style="padding: 40px 16px; text-align: center;">
-          <div class="report-empty-state" style="border: none; background: transparent; padding: 0;">
-            <div class="report-empty-icon" style="font-size: 36px; margin-bottom: 12px;">👩‍🏫</div>
-            <div style="font-weight: 700; font-size: 16px; color: #1e293b; margin-bottom: 4px;">No Faculty Found</div>
-            <div style="font-size: 13.5px; color: #64748b;">No faculty records match the selected filters or search terms.</div>
+          <div class="directory-empty-container" style="box-shadow: none; border: none; padding: 20px 0; margin: 0 auto;">
+            <div class="directory-empty-icon">👩‍🏫</div>
+            <div class="directory-empty-title">No faculty members registered yet.</div>
+            <div class="directory-empty-text">Add faculty members to start building your teaching network.</div>
+            <button class="btn btn-primary" onclick="openAddFacultyModal()">+ Add Faculty</button>
           </div>
         </td>
       </tr>
@@ -3150,36 +3307,36 @@ async function loadFacultyDirectory() {
   }
 
   const canEdit = ['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role);
-  const headActions = document.getElementById('faculty-head-actions');
-  if (headActions) headActions.style.display = canEdit ? 'block' : 'none';
 
   let html = '';
-  res.faculty.forEach(f => {
-    const statusBadge = f.status === 'Active' ? '<span class="badge badge-success">ACTIVE</span>' : '<span class="badge badge-secondary">INACTIVE</span>';
+  facultyList.forEach(f => {
+    const statusBadge = (f.status || 'Active') === 'Active' ? '<span class="badge badge-success">ACTIVE</span>' : '<span class="badge badge-secondary">INACTIVE</span>';
     const cleanPhone = (f.phone || '').replace(/[^0-9]/g, '');
-    const subjectsStr = formatSubjects(f.subjects);
+    const subjectBadges = formatSubjectBadges(f.subjects);
+    const boardBadges = formatSyllabusBadges(f.syllabuses);
+    const gradesFormatted = formatGradesText(f.grades);
 
     html += `
       <tr class="clickable-row" onclick="openFacultyDrawer(${f.id})">
         <td>
           <div style="font-size: 11px; font-weight: 800; color: var(--primary); font-family: monospace;">${escapeHTML(f.faculty_code || 'FAC-2026-XXXX')}</div>
-          <strong>${escapeHTML(f.name)}</strong>
+          <strong style="color: #0f172a; font-size: 14px;">${escapeHTML(f.name)}</strong>
         </td>
         <td>
-          <div style="font-weight:600;">${escapeHTML(f.phone)}</div>
+          <div style="font-weight:600; color: #334155;">${escapeHTML(f.phone)}</div>
           <div style="display:flex; gap:4px; margin-top:4px;">
             <a href="tel:${escapeHTML(f.phone)}" class="btn btn-sm btn-outline" onclick="event.stopPropagation()" style="font-size:11px; padding:2px 6px;">📞 Call</a>
             <button class="btn btn-sm btn-whatsapp" onclick="event.stopPropagation(); openDirectWhatsApp('${cleanPhone}', 'Hello ${escapeHTML(f.name)}, regarding Mash Magic class schedule...')" style="font-size:11px; padding:2px 6px;">📱 WhatsApp</button>
           </div>
         </td>
-        <td>${escapeHTML(subjectsStr)}</td>
-        <td>${escapeHTML(f.syllabuses || 'CBSE, ICSE')}</td>
-        <td><small style="color:var(--text-muted);">${escapeHTML(f.grades || 'Grade 6–10')}</small></td>
-        <td><strong>${f.active_students || 0}</strong> active</td>
+        <td>${subjectBadges}</td>
+        <td>${boardBadges}</td>
+        <td><small style="color: #475569; font-weight: 600;">${escapeHTML(gradesFormatted)}</small></td>
+        <td><span class="badge-chip badge-chip-gray" style="font-weight:700; color:#0f172a;">${f.active_students || 0} Students</span></td>
         <td>${statusBadge}</td>
         <td>
-          <div style="display:flex; gap:4px;">
-            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openFacultyDrawer(${f.id})">View Profile</button>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openFacultyDrawer(${f.id})">View</button>
             ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openEditFacultyModal(${f.id})">Edit</button>` : ''}
           </div>
         </td>
@@ -3326,7 +3483,8 @@ function openAddFacultyModal() {
   if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
 
   document.getElementById('fac-modal-title').innerText = 'Register New Faculty';
-  document.getElementById('fac-submit-btn').innerText = 'Register Faculty';
+  const submitBtn = document.getElementById('fac-submit-btn');
+  if (submitBtn) submitBtn.innerText = 'Register Faculty';
   document.getElementById('fac-id').value = '';
   document.getElementById('fac-name').value = '';
   document.getElementById('fac-phone').value = '';
@@ -3336,6 +3494,7 @@ function openAddFacultyModal() {
   document.querySelectorAll('input[name="fac_syllabus"]').forEach(cb => cb.checked = (cb.value === 'CBSE' || cb.value === 'ICSE'));
   document.querySelectorAll('input[name="fac_grade"]').forEach(cb => cb.checked = ['Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'].includes(cb.value));
 
+  updateFacultyCapabilitySummary();
   document.getElementById('modal-faculty-form')?.classList.add('active');
 }
 
@@ -3350,10 +3509,11 @@ async function openEditFacultyModal(facultyId) {
   const f = res.faculty;
 
   document.getElementById('fac-modal-title').innerText = `Edit Faculty (${f.faculty_code || 'FAC-2026-XXXX'})`;
-  document.getElementById('fac-submit-btn').innerText = 'Save Faculty Changes';
+  const submitBtn = document.getElementById('fac-submit-btn');
+  if (submitBtn) submitBtn.innerText = 'Save Faculty Changes';
   document.getElementById('fac-id').value = f.id;
-  document.getElementById('fac-name').value = f.name;
-  document.getElementById('fac-phone').value = f.phone;
+  document.getElementById('fac-name').value = f.name || '';
+  document.getElementById('fac-phone').value = f.phone || '';
   document.getElementById('fac-status').value = f.status || 'Active';
 
   const subList = (f.subjects || '').split(',').map(s => s.trim());
@@ -3371,6 +3531,7 @@ async function openEditFacultyModal(facultyId) {
     cb.checked = grdList.includes(cb.value);
   });
 
+  updateFacultyCapabilitySummary();
   document.getElementById('modal-faculty-form')?.classList.add('active');
 }
 
@@ -3379,7 +3540,16 @@ async function handleFacultyFormSubmit(e) {
   if (!['ACADEMIC_HEAD', 'SSC', 'SUPER_ADMIN'].includes(currentUser?.role)) return;
 
   const facId = document.getElementById('fac-id').value;
-  
+  const submitBtn = document.getElementById('fac-submit-btn');
+
+  const nameVal = document.getElementById('fac-name').value.trim();
+  const phoneVal = document.getElementById('fac-phone').value.trim();
+
+  if (!nameVal || !phoneVal) {
+    alert('Please enter Faculty Name and Contact Number.');
+    return;
+  }
+
   const selectedSubjects = Array.from(document.querySelectorAll('input[name="fac_subject"]:checked')).map(cb => cb.value);
   const selectedSyllabuses = Array.from(document.querySelectorAll('input[name="fac_syllabus"]:checked')).map(cb => cb.value);
   const selectedGrades = Array.from(document.querySelectorAll('input[name="fac_grade"]:checked')).map(cb => cb.value);
@@ -3390,28 +3560,42 @@ async function handleFacultyFormSubmit(e) {
   }
 
   const data = {
-    name: document.getElementById('fac-name').value,
-    phone: document.getElementById('fac-phone').value,
+    name: nameVal,
+    phone: phoneVal,
     status: document.getElementById('fac-status').value,
     subjects: selectedSubjects,
     syllabuses: selectedSyllabuses,
     grades: selectedGrades
   };
 
-  let res;
-  if (facId) {
-    res = await fetchAPI(`/api/faculty/${facId}`, 'PUT', data);
-  } else {
-    res = await fetchAPI('/api/faculty', 'POST', data);
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = facId ? 'Saving changes...' : 'Registering faculty...';
   }
 
-  if (res && res.success) {
-    closeModal('modal-faculty-form');
-    alert(facId ? 'Faculty details updated successfully!' : `Faculty registered successfully! ID: ${res.faculty_code}`);
-    loadFacultyDirectory();
-    loadFacultyList();
-  } else {
-    alert(res?.error || 'Failed to save faculty record.');
+  try {
+    let res;
+    if (facId) {
+      res = await fetchAPI(`/api/faculty/${facId}`, 'PUT', data);
+    } else {
+      res = await fetchAPI('/api/faculty', 'POST', data);
+    }
+
+    if (res && res.success) {
+      closeModal('modal-faculty-form');
+      alert(facId ? 'Faculty details updated successfully!' : `Faculty registered successfully! ID: ${res.faculty_code}`);
+      loadFacultyDirectory();
+      if (typeof loadFacultyList === 'function') loadFacultyList();
+    } else {
+      alert(res?.error || 'Failed to save faculty record.');
+    }
+  } catch (err) {
+    alert('Error saving faculty record: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = facId ? 'Save Faculty Changes' : 'Register Faculty';
+    }
   }
 }
 
@@ -4924,9 +5108,11 @@ Object.assign(window, {
   onHeadPeriodChange,
   setUpcomingPkgFilter,
   openCreateSSCModal,
+  toggleSSCPasswordVisibility,
   handleCreateSSCSubmit,
   openAddFacultyModal,
   openEditFacultyModal,
+  updateFacultyCapabilitySummary,
   handleFacultyFormSubmit,
   openRegisterStudentModal,
   handleRegisterStudentSubmit,
