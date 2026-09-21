@@ -50,6 +50,51 @@ function formatPercentage(val) {
   return `${str}%`;
 }
 
+// ==========================================================================
+// SHARED UI COMPONENT RENDER HELPERS (DESIGN SYSTEM HARMONIZATION)
+// ==========================================================================
+
+function renderKPICard({ label, value, icon = '📊', colorClass = '', badgeText = '', badgeType = 'primary' }) {
+  return `
+    <div class="kpi-card ${colorClass}">
+      <div class="kpi-icon">${icon}</div>
+      <div class="kpi-details">
+        <span class="kpi-label">${label}</span>
+        <div class="kpi-value">${value}</div>
+        ${badgeText ? `<span class="badge badge-${badgeType}" style="margin-top:4px; font-size:10px;">${badgeText}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderStatusBadge(status) {
+  if (!status) return `<span class="badge badge-secondary">-</span>`;
+  const s = String(status).toUpperCase();
+  let badgeClass = 'badge-secondary';
+  
+  if (['ACTIVE', 'COMPLETED', 'VERIFIED', 'APPROVED', 'YES', 'ATTENDED'].includes(s)) {
+    badgeClass = 'badge-success';
+  } else if (['PENDING', 'SCHEDULED', 'SUBMITTED', 'RENEWAL_DUE'].includes(s)) {
+    badgeClass = 'badge-warning';
+  } else if (['CHURNED', 'CANCELLED', 'REJECTED', 'CORRECTION', 'CORRECTION_REQUIRED', 'NO', 'ABSENT'].includes(s)) {
+    badgeClass = 'badge-danger';
+  } else if (['RESCHEDULED', 'REASSIGNED', 'NEW', 'UPCOMING'].includes(s)) {
+    badgeClass = 'badge-primary';
+  }
+  
+  return `<span class="badge ${badgeClass}">${status}</span>`;
+}
+
+function renderEmptyState({ icon = '📂', title = 'No Data Found', message = 'No records match the selected criteria.' }) {
+  return `
+    <div class="report-empty-state" style="padding: 40px 20px; text-align: center;">
+      <div style="font-size: 40px; margin-bottom: 12px;">${icon}</div>
+      <h3 style="font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 6px;">${title}</h3>
+      <p style="font-size: 13px; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">${message}</p>
+    </div>
+  `;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[AUTH DEBUG] DOMContentLoaded event fired');
   const loginForm = document.getElementById('form-login');

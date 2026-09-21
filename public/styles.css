@@ -673,13 +673,26 @@ html, body {
   border-top: 1px solid #F1F5F9;
 }
 
-/* STUDENTS DIRECTORY TABLE & DRAWER */
-.table-controls {
+/* CONTROL BAR & TABLE CONTROLS */
+.table-controls,
+.control-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.control-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
