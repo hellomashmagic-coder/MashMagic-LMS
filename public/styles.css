@@ -1324,3 +1324,643 @@ html, body {
   color: #7e22ce;
 }
 
+/* ==================================================
+   SSC WEEKLY TIMETABLE & MONTHLY CALENDAR REDESIGN
+   ================================================== */
+
+/* Weekly Master Timetable Grid */
+.weekly-master-grid {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  gap: 1px;
+  background: #cbd5e1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.weekly-master-grid .grid-cell {
+  background: #ffffff;
+  padding: 10px 8px;
+  min-height: 70px;
+  font-size: 0.85rem;
+}
+
+.weekly-master-grid .grid-header {
+  background: #1e293b;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 12px 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  min-height: auto;
+}
+
+.weekly-master-grid .grid-time-label {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #e2e8f0;
+}
+
+.timetable-class-block {
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.timetable-class-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.timetable-class-block .tt-student {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.timetable-class-block .tt-meta {
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+/* Subject Specific Color Themes */
+.tt-sub-math {
+  background: #eef2ff;
+  border-left: 4px solid #4f46e5;
+  color: #312e81;
+}
+
+.tt-sub-science {
+  background: #ecfdf5;
+  border-left: 4px solid #10b981;
+  color: #064e3b;
+}
+
+.tt-sub-physics {
+  background: #f3e8ff;
+  border-left: 4px solid #a855f7;
+  color: #581c87;
+}
+
+.tt-sub-chemistry {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  color: #78350f;
+}
+
+.tt-sub-biology {
+  background: #f0fdf4;
+  border-left: 4px solid #22c55e;
+  color: #14532d;
+}
+
+.tt-sub-english {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  color: #1e3a8a;
+}
+
+.tt-sub-social {
+  background: #f0f9ff;
+  border-left: 4px solid #06b6d4;
+  color: #164e63;
+}
+
+.tt-sub-default {
+  background: #f8fafc;
+  border-left: 4px solid #64748b;
+  color: #1e293b;
+}
+
+/* Monthly Class Calendar Day Cells */
+.mc-day-cell {
+  background: #ffffff;
+  min-height: 110px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.mc-day-cell:hover {
+  background-color: #f8fafc;
+}
+
+.mc-day-cell.other-month {
+  background: #f1f5f9;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mc-day-cell.is-today {
+  background: #f0fdf4;
+  border: 2px solid #22c55e;
+}
+
+.mc-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mc-day-num {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.mc-today-badge {
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.mc-day-count {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 600;
+  background: #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.mc-class-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.mc-class-card {
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: all 0.15s ease;
+  border-left: 3px solid #cbd5e1;
+  background: #ffffff;
+}
+
+.mc-class-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+}
+
+.mc-class-card.status-scheduled {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+}
+
+.mc-class-card.status-conducted {
+  background: #f0fdf4;
+  border-left-color: #16a34a;
+}
+
+.mc-class-card.status-rescheduled {
+  background: #faf5ff;
+  border-left-color: #9333ea;
+}
+
+.mc-class-card.status-postponed {
+  background: #fff7ed;
+  border-left-color: #d97706;
+}
+
+.mc-class-card.status-cancelled {
+  background: #fef2f2;
+  border-left-color: #dc2626;
+}
+
+.mc-class-card.status-noshow {
+  background: #f8fafc;
+  border-left-color: #64748b;
+}
+
+.mc-card-time {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.75rem;
+}
+
+.mc-status-pill {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.mc-pill-scheduled { background: #dbeafe; color: #1e40af; }
+.mc-pill-conducted { background: #dcfce7; color: #14532d; }
+.mc-pill-rescheduled { background: #f3e8ff; color: #6b21a8; }
+.mc-pill-postponed { background: #ffedd5; color: #9a3412; }
+.mc-pill-cancelled { background: #fee2e2; color: #991b1b; }
+.mc-pill-noshow { background: #e2e8f0; color: #334155; }
+
+.mc-student-name {
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.mc-student-name:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.mc-card-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-wrapup-warning {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #fde68a;
+}
+
+.mc-more-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 6px;
+  text-align: center;
+  cursor: pointer;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.mc-more-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ==========================================================================
+   ACADEMIC HEAD — SSC ACCOUNT + FACULTY REDESIGN SYSTEM
+   ========================================================================== */
+
+/* Modal Improvements */
+.modal-title-wrap {
+  margin-bottom: 16px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 400;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.modal-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 20px 0 12px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-section-title:first-child {
+  margin-top: 0;
+}
+
+.modal-helper-text {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrap input {
+  padding-right: 40px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #64748b;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--primary);
+}
+
+/* Capability Chips Grid for Faculty Registration */
+.capability-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.capability-chip-grid.boards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.capability-chip-grid.grades-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+.capability-chip {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+  min-height: 40px;
+}
+
+.capability-chip input[type="checkbox"] {
+  display: none;
+}
+
+.capability-chip:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.capability-chip.selected {
+  background: #f3e8ff;
+  border-color: #7c3aed;
+  color: #6b21a8;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.12);
+}
+
+.chip-check-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: transparent;
+  background: #ffffff;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.capability-chip.selected .chip-check-icon {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #ffffff;
+}
+
+/* Capability Summary Card */
+.capability-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-top: 20px;
+}
+
+.summary-card-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-details-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.summary-detail-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.summary-detail-label {
+  font-weight: 700;
+  color: #64748b;
+  min-width: 70px;
+}
+
+.summary-detail-value {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* Faculty Directory Summary Grid */
+.directory-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .directory-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .directory-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.directory-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.directory-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.directory-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.directory-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.directory-stat-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+/* Compact Badges in Directory Table */
+.badge-chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+  margin: 2px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.badge-chip-purple {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border-color: #e9d5ff;
+}
+
+.badge-chip-blue {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.badge-chip-gray {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.badge-more {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #475569;
+  margin: 2px;
+}
+
+/* Empty State */
+.directory-empty-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  max-width: 480px;
+  margin: 40px auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.directory-empty-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+}
+
+.directory-empty-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.directory-empty-text {
+  font-size: 13.5px;
+  color: #64748b;
+  margin-bottom: 20px;
+  line-height: 1.45;
+}
+
+
+

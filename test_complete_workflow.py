@@ -93,7 +93,7 @@ class TestCompleteUserWorkflow(unittest.TestCase):
         print("✓ Steps 5 & 6: SSC Ananya logged in & confirmed student appears in her assigned list")
 
         # Step 9 & 10: Schedule class & create follow-up for student
-        cls_body = {'student_id': test_student_id, 'faculty_id': 1, 'subject': 'Mathematics', 'date': '2026-09-20', 'start_time': '05:00 PM'}
+        cls_body = {'student_id': test_student_id, 'faculty_id': 1, 'subject': 'Mathematics', 'date': '2026-09-25', 'start_time': '05:00 PM'}
         h_cls = MockSSCHandler('/api/classes', method='POST', body_data=cls_body, session_id=ananya_session)
         h_cls.do_POST()
         self.assertEqual(h_cls.response_status, 200)

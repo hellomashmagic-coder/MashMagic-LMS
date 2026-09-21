@@ -1196,52 +1196,62 @@
 
         <!-- TIMETABLE VIEW -->
         <section id="view-timetable" class="page-view">
-          <div class="timetable-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div class="preset-tabs" id="timetable-mode-tabs">
-                <button class="tab-btn active" id="btn-mode-weekly" onclick="switchTimetableMode('weekly')">📅 Weekly Timetable</button>
-                <button class="tab-btn" id="btn-mode-calendar" onclick="switchTimetableMode('calendar')">📆 Calendar</button>
-              </div>
+          <div class="timetable-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a;">Weekly Timetable & Schedule</h2>
+              <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem;">Master weekly timetable grid and monthly occurrence management</p>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div class="preset-tabs" id="timetable-mode-tabs" style="background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; gap: 4px;">
+                <button class="tab-btn active" id="btn-mode-weekly" onclick="switchTimetableMode('weekly')" style="padding: 6px 14px; font-weight: 700; font-size: 0.85rem;">📅 Weekly Timetable</button>
+                <button class="tab-btn" id="btn-mode-calendar" onclick="switchTimetableMode('calendar')" style="padding: 6px 14px; font-weight: 700; font-size: 0.85rem;">📆 Monthly Occurrences</button>
+              </div>
+
               <div id="calendar-month-controls" style="display: none; align-items: center; gap: 8px;">
                 <button class="btn btn-sm btn-outline" onclick="navigateCalendarMonth(-1)">‹ Previous Month</button>
                 <span id="calendar-month-heading" style="font-weight: 800; font-size: 15px; color: var(--primary); min-width: 140px; text-align: center;">September 2026</span>
                 <button class="btn btn-sm btn-outline" onclick="navigateCalendarMonth(1)">Next Month ›</button>
               </div>
+
               <button class="btn btn-primary" onclick="openSetWeeklyTimetableModal()">+ Set Weekly Timetable</button>
             </div>
           </div>
 
-          <!-- Student Filter Bar for Timetable & Calendar -->
-          <div class="table-controls" style="margin-bottom: 16px;">
-            <div class="filter-group" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Student:</label>
-                <select id="timetable-student-filter" onchange="refreshTimetableModeView()" style="min-width: 220px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <!-- Controls & Subject Legend Bar -->
+          <div class="card" style="padding: 14px 18px; margin-bottom: 20px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 0.85rem; font-weight: 700; color: #475569;">Filter Student:</label>
+                <select id="timetable-student-filter" onchange="refreshTimetableModeView()" class="form-control" style="min-width: 240px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; border-radius: 6px; border: 1px solid #cbd5e1;">
                   <option value="">All Assigned Students</option>
                 </select>
               </div>
-              <div id="calendar-subview-toggle" style="display: none;">
-                <div class="preset-tabs">
-                  <button class="tab-btn active" id="btn-subview-month" onclick="switchCalendarSubView('month')">Month View</button>
-                  <button class="tab-btn" id="btn-subview-week" onclick="switchCalendarSubView('week')">Week View</button>
-                </div>
+
+              <!-- Dynamic Subject Legend -->
+              <div style="display: flex; align-items: center; gap: 12px; font-size: 0.75rem; background: #f8fafc; padding: 6px 14px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
+                <span style="font-weight: 700; color: #475569;">SUBJECT LEGEND:</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #4f46e5;"></span> Math</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #10b981;"></span> Science</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #a855f7;"></span> Physics</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #f59e0b;"></span> Chemistry</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #22c55e;"></span> Biology</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #3b82f6;"></span> English</span>
+                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #06b6d4;"></span> Social</span>
               </div>
             </div>
           </div>
 
           <!-- Mode A: Master Weekly Timetable Grid -->
           <div id="container-mode-weekly">
-            <div class="card timetable-card">
-              <div class="timetable-grid" id="weekly-master-grid"></div>
+            <div class="card timetable-card" style="padding: 0; overflow: hidden; border-radius: 10px; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+              <div class="weekly-master-grid" id="weekly-master-grid"></div>
             </div>
           </div>
 
           <!-- Mode B: Monthly Calendar Occurrences -->
           <div id="container-mode-calendar" style="display: none;">
-            <div class="card timetable-card">
+            <div class="card timetable-card" style="padding: 16px; border-radius: 10px; border: 1px solid #cbd5e1;">
               <div class="calendar-occurrences-grid" id="calendar-occurrences-container"></div>
             </div>
           </div>

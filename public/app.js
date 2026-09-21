@@ -1111,8 +1111,30 @@ async function loadWeeklyMasterGrid() {
   if (!res || !res.weekly_timetable) return;
 
   const container = document.getElementById('weekly-master-grid');
-  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const timeslots = ["04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"];
+  if (!container) return;
+
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+  if (res.weekly_timetable.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: span 8; background: #ffffff; padding: 48px 24px; text-align: center; border-radius: 8px;">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">📅</div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Master Timetable Not Set</h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 18px 0; max-width: 420px; margin-left: auto; margin-right: auto;">
+          No weekly master timetable slots found for the selected filter. Click below to set up a master weekly schedule.
+        </p>
+        <button class="btn btn-primary" onclick="openSetWeeklyTimetableModal()">+ Set Weekly Timetable</button>
+      </div>`;
+    return;
+  }
+
+  // Extract all unique start times present in the fetched slots and sort chronologically
+  let timeslots = [...new Set(res.weekly_timetable.map(w => w.start_time).filter(Boolean))];
+  timeslots.sort((a, b) => parseTimeToMinutesJS(a) - parseTimeToMinutesJS(b));
+
+  if (timeslots.length === 0) {
+    timeslots = ["04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"];
+  }
 
   let html = `<div class="grid-cell grid-header">TIME</div>`;
   days.forEach(d => {
@@ -1120,15 +1142,28 @@ async function loadWeeklyMasterGrid() {
   });
 
   timeslots.forEach(slot => {
-    html += `<div class="grid-cell grid-time-label">${slot}</div>`;
+    html += `<div class="grid-cell grid-time-label">${slot.replace(/^0/, '')}</div>`;
     days.forEach(day => {
       const matchingSlots = res.weekly_timetable.filter(w => w.day_of_week === day && w.start_time === slot);
       html += `<div class="grid-cell">`;
       matchingSlots.forEach(w => {
+        const subLower = (w.subject || '').toLowerCase();
+        let themeClass = 'tt-sub-default';
+        if (subLower.includes('math')) themeClass = 'tt-sub-math';
+        else if (subLower.includes('science')) themeClass = 'tt-sub-science';
+        else if (subLower.includes('physic')) themeClass = 'tt-sub-physics';
+        else if (subLower.includes('chemist')) themeClass = 'tt-sub-chemistry';
+        else if (subLower.includes('biolog')) themeClass = 'tt-sub-biology';
+        else if (subLower.includes('english')) themeClass = 'tt-sub-english';
+        else if (subLower.includes('social')) themeClass = 'tt-sub-social';
+
+        const durationStr = w.duration ? ` (${w.duration}m)` : '';
+        const facultyShort = w.faculty_name ? escapeHTML(w.faculty_name.split(' ')[0]) : 'Faculty';
+
         html += `
-          <div class="timetable-class-block" style="border-left: 3px solid var(--primary); background: var(--primary-light);" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(w.student_name)}', '${w.subject}', ${w.faculty_id}, '${w.day_of_week}', '${w.start_time}', '${w.effective_from}')">
+          <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(w.student_name)}', '${w.subject}', ${w.faculty_id}, '${w.day_of_week}', '${w.start_time}', '${w.effective_from}')">
             <div class="tt-student">${escapeHTML(w.student_name)}</div>
-            <div class="tt-meta"><strong>${w.subject}</strong> • ${escapeHTML(w.faculty_name.split(' ')[0])}</div>
+            <div class="tt-meta"><strong>${w.subject}</strong> • ${facultyShort}${durationStr}</div>
           </div>
         `;
       });
@@ -1489,7 +1524,7 @@ function addSubjectSlotRow(subjectIdx, subjectName, facultyId, slotData = null) 
   const isCustomDur = !['30', '45', '60', '75', '90', '120'].includes(durVal);
   const selectDurVal = isCustomDur ? 'custom' : durVal;
 
-  const daysOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => 
+  const daysOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => 
     `<option value="${d}" ${d === dayVal ? 'selected' : ''}>${d}</option>`
   ).join('');
 
@@ -1518,8 +1553,8 @@ function addSubjectSlotRow(subjectIdx, subjectName, facultyId, slotData = null) 
         </select>
       </td>
       <td style="padding: 6px 8px;">
-        <div style="display: flex; gap: 4px; align-items: center;">
-          <select class="form-control wt-row-duration" style="padding: 4px 8px; font-size: 0.85rem; flex: 1;" onchange="handleDurationChange(this)">
+        <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+          <select class="form-control wt-row-duration" style="padding: 4px 8px; font-size: 0.85rem; flex: 1; min-width: 85px;" onchange="handleDurationChange(this)">
             <option value="30" ${selectDurVal === '30' ? 'selected' : ''}>30 min</option>
             <option value="45" ${selectDurVal === '45' ? 'selected' : ''}>45 min</option>
             <option value="60" ${selectDurVal === '60' ? 'selected' : ''}>60 min</option>
@@ -1528,7 +1563,8 @@ function addSubjectSlotRow(subjectIdx, subjectName, facultyId, slotData = null) 
             <option value="120" ${selectDurVal === '120' ? 'selected' : ''}>120 min</option>
             <option value="custom" ${selectDurVal === 'custom' ? 'selected' : ''}>Custom...</option>
           </select>
-          <input type="number" class="form-control wt-row-custom-duration" min="15" max="300" placeholder="Mins" value="${isCustomDur ? durVal : ''}" style="width: 65px; padding: 4px 6px; font-size: 0.85rem; display: ${isCustomDur ? 'block' : 'none'};" oninput="updateTimetableVisualSummary()">
+          <input type="number" class="form-control wt-row-custom-duration" min="15" max="300" placeholder="Mins" value="${isCustomDur ? durVal : ''}" style="width: 60px; padding: 4px 6px; font-size: 0.85rem; display: ${isCustomDur ? 'block' : 'none'};" oninput="updateTimetableVisualSummary()">
+          <span class="wt-row-endtime-badge" style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe;">→ 05:00 PM</span>
         </div>
       </td>
       <td style="padding: 6px 8px;">
@@ -1604,7 +1640,7 @@ function updateTimetableVisualSummary() {
 
   summaryCard.style.display = 'block';
 
-  const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const slotsByDay = {};
   daysOrder.forEach(d => { slotsByDay[d] = []; });
 
@@ -1624,6 +1660,12 @@ function updateTimetableVisualSummary() {
     const startMin = parseTimeToMinutesJS(time);
     const endMin = startMin + duration;
     const endStr = formatMinutesToTimeJS(endMin);
+
+    // Update row endtime badge
+    const endBadge = r.querySelector('.wt-row-endtime-badge');
+    if (endBadge) {
+      endBadge.textContent = `→ ${endStr}`;
+    }
 
     const slotObj = { day, time, duration, subject, facultyId, startMin, endMin, endStr, element: r };
     parsedSlots.push(slotObj);
