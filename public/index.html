@@ -1194,74 +1194,62 @@
           </div>
         </section>
 
-        <!-- TIMETABLE VIEW -->
+          <!-- SSC WEEKLY TIMETABLE OPERATIONAL CONTROL VIEW -->
         <section id="view-timetable" class="page-view">
-          <!-- Page Header with Title, Subtitle, and Top Action Buttons -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
-            <div>
-              <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a;">Weekly Timetable</h2>
-              <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.9rem;">Master class schedule grid</p>
-            </div>
 
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <button class="btn btn-outline" onclick="openScheduleClassModal()">+ Schedule Class</button>
-              <button class="btn btn-primary" onclick="openCreateFollowupModal()" style="background: #4f46e5; border-color: #4f46e5;">+ Add Follow-up</button>
-            </div>
-          </div>
 
-          <!-- Controls Bar matching user screenshot -->
+          <!-- Master Control Toolbar -->
           <div class="card" style="padding: 16px 20px; margin-bottom: 20px; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-            <!-- Row 1: Mode Tabs (Left) and Month Controls + Set Weekly Timetable Button (Right) -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
-              <!-- Left: Mode Tabs -->
-              <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <!-- Left: Mode Tabs & Navigation -->
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                 <div class="preset-tabs" id="timetable-mode-tabs" style="background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; gap: 4px;">
                   <button class="tab-btn active" id="btn-mode-weekly" onclick="switchTimetableMode('weekly')" style="padding: 6px 14px; font-weight: 700; font-size: 0.85rem;">📆 Weekly Timetable</button>
                   <button class="tab-btn" id="btn-mode-calendar" onclick="switchTimetableMode('calendar')" style="padding: 6px 14px; font-weight: 700; font-size: 0.85rem;">📅 Calendar</button>
                 </div>
+
+                <div id="calendar-month-controls" style="display: flex; align-items: center; gap: 8px;">
+                  <button class="btn btn-sm btn-outline" id="btn-nav-prev" onclick="navigateCalendarMonth(-1)" style="font-size: 0.8rem; padding: 4px 10px;">‹ Previous Week</button>
+                  <span id="calendar-month-heading" style="font-weight: 800; font-size: 1.05rem; color: #4f46e5; min-width: 150px; text-align: center;">Sep 21 – Sep 27</span>
+                  <button class="btn btn-sm btn-outline" id="btn-nav-next" onclick="navigateCalendarMonth(1)" style="font-size: 0.8rem; padding: 4px 10px;">Next Week ›</button>
+                </div>
               </div>
 
-              <!-- Right: Month Controls & Set Weekly Timetable Button -->
+              <!-- Right: Student Selector & Action Button -->
               <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <div id="calendar-month-controls" style="display: flex; align-items: center; gap: 8px;">
-                  <button class="btn btn-sm btn-outline" onclick="navigateCalendarMonth(-1)" style="font-size: 0.8rem; padding: 4px 10px;">‹ Previous Month</button>
-                  <span id="calendar-month-heading" style="font-weight: 800; font-size: 1.1rem; color: #4f46e5; min-width: 140px; text-align: center;">September 2026</span>
-                  <button class="btn btn-sm btn-outline" onclick="navigateCalendarMonth(1)" style="font-size: 0.8rem; padding: 4px 10px;">Next Month ›</button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">Student:</label>
+                  <select id="timetable-student-filter" onchange="refreshTimetableModeView()" class="form-control" style="min-width: 220px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; border-radius: 6px; border: 1px solid #cbd5e1;">
+                    <option value="">All Assigned Students</option>
+                  </select>
                 </div>
 
                 <button class="btn btn-primary" onclick="openSetWeeklyTimetableModal()" style="font-weight: 700; background: #4f46e5; border-color: #4f46e5;">+ Set Weekly Timetable</button>
               </div>
             </div>
 
-            <!-- Row 2: Student Selector (Left) and Subview Toggles (Right) -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <label style="font-size: 0.85rem; font-weight: 700; color: #64748b;">Student:</label>
-                <select id="timetable-student-filter" onchange="refreshTimetableModeView()" class="form-control" style="min-width: 240px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; border-radius: 6px; border: 1px solid #cbd5e1;">
-                  <option value="">All Assigned Students</option>
-                </select>
-              </div>
-
-              <div id="calendar-subview-toggle">
-                <div class="preset-tabs" style="background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; gap: 4px;">
-                  <button class="tab-btn" id="btn-subview-month" onclick="switchCalendarSubView('month')" style="padding: 5px 12px; font-size: 0.8rem;">Month View</button>
-                  <button class="tab-btn active" id="btn-subview-week" onclick="switchCalendarSubView('week')" style="padding: 5px 12px; font-size: 0.8rem;">Week View</button>
-                </div>
-              </div>
+            <!-- Subject Legend (Secondary) -->
+            <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #f1f5f9; display: flex; align-items: center; gap: 14px; font-size: 0.78rem; color: #64748b; flex-wrap: wrap;">
+              <span style="font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.7rem; color: #475569;">SUBJECTS:</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #4f46e5; display: inline-block;"></span> Math</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #10b981; display: inline-block;"></span> Science</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #a855f7; display: inline-block;"></span> Physics</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #f59e0b; display: inline-block;"></span> Chemistry</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #3b82f6; display: inline-block;"></span> English</span>
             </div>
           </div>
 
-          <!-- Master Data Table Container (Matching User Screenshot!) -->
-          <div id="container-mode-weekly">
-            <div class="card timetable-card" style="padding: 0; overflow: hidden; border-radius: 10px; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-              <div id="calendar-occurrences-container"></div>
-            </div>
-          </div>
-
-          <!-- Mode B: Alternative Grid View -->
-          <div id="container-mode-calendar" style="display: none;">
-            <div class="card timetable-card" style="padding: 0; border-radius: 10px; border: 1px solid #cbd5e1; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+          <!-- Container Mode Weekly: Renders Weekly Master Grid -->
+          <div id="container-mode-weekly" style="display: block;">
+            <div class="card timetable-card" style="padding: 0; border-radius: 10px; border: 1px solid #cbd5e1; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
               <div class="weekly-master-grid" id="weekly-master-grid"></div>
+            </div>
+          </div>
+
+          <!-- Container Mode Calendar: Renders Month Occurrences -->
+          <div id="container-mode-calendar" style="display: none;">
+            <div class="card timetable-card" style="padding: 0; border-radius: 10px; border: 1px solid #cbd5e1; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+              <div id="calendar-occurrences-container"></div>
             </div>
           </div>
         </section>
@@ -2583,72 +2571,115 @@
     </div>
   </div>
 
-  <!-- 10. Set Master Weekly Timetable Modal (Student-Level Multi-Subject Setup Form) -->
+  <!-- 10. Set Master Weekly Timetable Modal (Redesigned Master Schedule Configuration Tool) -->
   <div class="modal-overlay" id="modal-set-weekly-timetable">
-    <div class="modal" style="max-width: 860px; max-height: 90vh; display: flex; flex-direction: column; padding: 0;">
-      <div class="modal-header" style="padding: 18px 24px; border-bottom: 1px solid var(--border-color); margin-bottom: 0;">
-        <div>
-          <h3 style="margin: 0; font-size: 1.25rem;">+ Set Weekly Timetable (Master Schedule)</h3>
-          <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Configure complete weekly timetable for all assigned subjects of a student in one form.</p>
+    <div class="modal" style="max-width: 1100px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); border-top: none;">
+      <!-- Modal Header -->
+      <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0; background: #ffffff; margin-bottom: 0; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; width: 100%;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #eef2ff; color: #4f46e5; border-radius: 8px; font-size: 1.1rem; font-weight: 700;">🗓</span>
+              <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">SET WEEKLY TIMETABLE</h3>
+            </div>
+            <p style="margin: 4px 0 0 40px; font-size: 0.85rem; color: #64748b;">Configure the student's complete recurring weekly class schedule.</p>
+          </div>
+          <button type="button" class="modal-close-btn" onclick="closeModal('modal-set-weekly-timetable')" style="font-size: 1.25rem; color: #64748b; background: transparent; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
         </div>
-        <button class="modal-close-btn" onclick="closeModal('modal-set-weekly-timetable')">✕</button>
+
+        <!-- Visual Workflow Indicator -->
+        <div style="display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 10px 16px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.82rem; overflow-x: auto;">
+          <div id="wt-step-1" class="wt-step-item active" style="display: flex; align-items: center; gap: 6px; color: #4f46e5; font-weight: 700;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #4f46e5; color: #ffffff; font-size: 0.75rem;">1</span>
+            <span>Student</span>
+          </div>
+          <span style="color: #cbd5e1; font-weight: 600;">→</span>
+          <div id="wt-step-2" class="wt-step-item" style="display: flex; align-items: center; gap: 6px; color: #64748b; font-weight: 600;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #e2e8f0; color: #64748b; font-size: 0.75rem;">2</span>
+            <span>Subjects</span>
+          </div>
+          <span style="color: #cbd5e1; font-weight: 600;">→</span>
+          <div id="wt-step-3" class="wt-step-item" style="display: flex; align-items: center; gap: 6px; color: #64748b; font-weight: 600;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #e2e8f0; color: #64748b; font-size: 0.75rem;">3</span>
+            <span>Weekly Slots</span>
+          </div>
+          <span style="color: #cbd5e1; font-weight: 600;">→</span>
+          <div id="wt-step-4" class="wt-step-item" style="display: flex; align-items: center; gap: 6px; color: #64748b; font-weight: 600;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #e2e8f0; color: #64748b; font-size: 0.75rem;">4</span>
+            <span>Review & Save</span>
+          </div>
+        </div>
       </div>
 
       <form id="form-set-weekly-timetable" onsubmit="handleSetWeeklyTimetableSubmit(event)" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; margin: 0;">
-        <div style="flex: 1; overflow-y: auto; padding: 20px 24px;">
+        <div style="flex: 1; overflow-y: auto; padding: 24px;">
 
-          <!-- Step 1: Student Selection & Details Card -->
-          <div class="card" style="padding: 16px; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">Select Student *</label>
-              <select id="wt-student-id" required onchange="onStudentSelectForTimetable(this.value)">
-                <option value="">Select Student...</option>
+          <!-- Top Section: Student & Effective Date -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
+            <!-- Student Selector Card -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+              <label style="font-weight: 700; color: #0f172a; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 8px;">
+                Student *
+              </label>
+              <select id="wt-student-id" required class="form-control" style="width: 100%; height: 42px; font-size: 0.95rem; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff;" onchange="onStudentSelectForTimetable(this.value)">
+                <option value="">Select a student...</option>
               </select>
             </div>
-            
-            <div id="wt-student-info-card" style="display: none; background: #ffffff; padding: 12px 16px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 12px;">
-              <!-- Dynamically populated via JS -->
+
+            <!-- Effective Date Card -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+              <label style="font-weight: 700; color: #0f172a; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 8px;">
+                APPLY WEEKLY TIMETABLE FROM *
+              </label>
+              <input type="date" id="wt-effective-from" required class="form-control" style="width: 100%; height: 42px; font-size: 0.95rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+              <span style="display: block; font-size: 0.78rem; color: #64748b; margin-top: 6px;">
+                Monthly class occurrences will be generated from this date according to the weekly timetable.
+              </span>
             </div>
           </div>
 
-          <!-- Step 2: Global Effective Date -->
-          <div class="form-row" style="margin-bottom: 20px; grid-template-columns: 1fr;">
-            <div class="form-group">
-              <label style="font-weight: 700; font-size: 0.9rem;">Apply Weekly Timetable From Date *</label>
-              <input type="date" id="wt-effective-from" required>
-              <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Monthly calendar class occurrences will be automatically calculated and created from this date onwards.</span>
-            </div>
+          <!-- Student Context Card Container -->
+          <div id="wt-student-info-card" style="display: none; margin-bottom: 24px;">
+            <!-- Dynamically populated via JS -->
           </div>
 
-          <!-- Step 3: Assigned Subjects Container -->
-          <div id="wt-subjects-section">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <h4 style="font-size: 1rem; margin: 0; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                <span>📚 Assigned Subjects & Weekly Slots</span>
+          <!-- Subject Configuration Container -->
+          <div id="wt-subjects-section" style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+              <h4 style="font-size: 1rem; margin: 0; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <span>📘 Assigned Subjects & Weekly Slots</span>
               </h4>
-              <span id="wt-subject-count-badge" class="badge badge-info" style="font-size: 0.75rem;">0 Subjects</span>
+              <span id="wt-subject-count-badge" class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 0.78rem; padding: 4px 10px; border-radius: 20px;">0 Subjects</span>
             </div>
             
             <div id="wt-subjects-container">
-              <div style="text-align: center; padding: 32px 16px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-                👈 Please select a student above to load assigned subjects and configure their weekly timetable.
+              <div style="text-align: center; padding: 40px 20px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+                <div style="font-size: 2rem; margin-bottom: 8px;">👈</div>
+                <div style="font-weight: 600; color: #334155; margin-bottom: 4px;">Select a Student Above</div>
+                <div style="font-size: 0.85rem; color: #64748b;">Choose a student from the dropdown above to load assigned subjects and configure their weekly timetable.</div>
               </div>
             </div>
           </div>
 
-          <!-- Step 4: Visual Weekly Pattern Summary -->
-          <div id="wt-summary-card" class="card" style="margin-top: 24px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: none;">
-            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #166534; font-weight: 700; display: flex; align-items: center; gap: 6px;">
-              <span>🗓 Weekly Timetable Visual Summary</span>
-            </h4>
-            <div id="wt-visual-summary" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+          <!-- Weekly Schedule Summary Card -->
+          <div id="wt-summary-card" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-top: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <h4 style="margin: 0; font-size: 0.92rem; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.03em;">
+                <span>🗓 WEEKLY SCHEDULE SUMMARY</span>
+              </h4>
+              <div id="wt-summary-metrics" style="display: flex; gap: 14px; font-size: 0.82rem; font-weight: 700; color: #4f46e5;"></div>
+            </div>
+            <div id="wt-visual-summary" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
 
         </div>
 
-        <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding: 16px 24px; background: #ffffff; margin-top: 0;">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modal-set-weekly-timetable')">Cancel</button>
-          <button type="submit" id="wt-save-btn" class="btn btn-primary" disabled>Save Weekly Timetable</button>
+        <!-- Sticky Modal Footer -->
+        <div class="modal-footer" style="border-top: 1px solid #e2e8f0; padding: 16px 24px; background: #ffffff; margin-top: 0; display: flex; align-items: center; justify-content: space-between; position: sticky; bottom: 0; z-index: 10;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-set-weekly-timetable')" style="font-weight: 600;">Cancel</button>
+          <button type="submit" id="wt-save-btn" class="btn btn-primary" disabled style="font-weight: 700; padding: 10px 24px; background: #4f46e5; border-color: #4f46e5;">
+            Save Weekly Timetable
+          </button>
         </div>
       </form>
     </div>

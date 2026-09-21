@@ -51,7 +51,8 @@ service cloud.firestore {
 
     // User profiles
     match /users/{userId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAcademicHead() || isSuperAdmin());
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAcademicHead() || isSuperAdmin());
       allow create, update, delete: if isAcademicHead() || isSuperAdmin();
     }
 

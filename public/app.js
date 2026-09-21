@@ -672,6 +672,9 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
     // 3. Cloud Firestore Direct Queries
     // SSC Users
     if (endpoint === '/api/users/sscs') {
+      if (currentUser && currentUser.role === 'SSC') {
+        return { sscs: [mapSSCDoc(currentUser.uid, currentUser)] };
+      }
       const q = query(collection(db, 'users'), where('role', '==', 'SSC'));
       const snap = await getDocs(q);
       const sscs = snap.docs.map(doc => mapSSCDoc(doc.id, doc.data()));
@@ -697,16 +700,18 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       if (method === 'POST') {
         const docRef = await addDoc(collection(db, 'students'), {
           ...data,
+          assignedSSCId: (currentUser && currentUser.role === 'SSC') ? currentUser.uid : (data.assignedSSCId || null),
           createdAt: new Date().toISOString()
         });
         return { success: true, id: docRef.id, register_number: data.registerNumber || `MM-2026-${docRef.id}` };
       }
-      const snap = await getDocs(collection(db, 'students'));
-      let students = snap.docs.map(doc => mapStudentDoc(doc.id, doc.data()));
-
+      let snap;
       if (currentUser && currentUser.role === 'SSC') {
-        students = students.filter(s => String(s.assigned_ssc_id) === String(currentUser.uid) || String(s.assigned_ssc_id) === String(currentUser.user_id));
+        snap = await getDocs(query(collection(db, 'students'), where('assignedSSCId', '==', currentUser.uid)));
+      } else {
+        snap = await getDocs(collection(db, 'students'));
       }
+      let students = snap.docs.map(doc => mapStudentDoc(doc.id, doc.data()));
 
       if (endpoint.includes('ssc_id=unassigned')) {
         students = students.filter(s => !s.assigned_ssc_id || s.assigned_ssc_id === 'unassigned');
@@ -724,11 +729,43 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
 
     // Weekly Timetables & Classes
     if (endpoint.startsWith('/api/timetable') || endpoint.startsWith('/api/weekly-timetable')) {
-      const snap = await getDocs(collection(db, 'weeklyTimetables'));
-      let timetables = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      if (currentUser && currentUser.role === 'SSC') {
-        timetables = timetables.filter(t => String(t.assignedSSCId) === String(currentUser.uid));
+      if (method === 'POST') {
+        if (data && Array.isArray(data.slots)) {
+          const savedIds = [];
+          for (const slot of data.slots) {
+            const docRef = await addDoc(collection(db, 'weeklyTimetables'), {
+              studentId: data.student_id,
+              effectiveFrom: data.effective_from,
+              subject: slot.subject,
+              facultyId: slot.faculty_id,
+              dayOfWeek: slot.day_of_week,
+              startTime: slot.start_time,
+              duration: slot.duration || 60,
+              meetingLink: slot.meeting_link || '',
+              assignedSSCId: (currentUser && currentUser.role === 'SSC') ? currentUser.uid : (data.assignedSSCId || currentUser?.uid || null),
+              status: 'Active',
+              createdAt: new Date().toISOString()
+            });
+            savedIds.push(docRef.id);
+          }
+          return { success: true, saved_slots_count: savedIds.length };
+        } else if (data) {
+          const docRef = await addDoc(collection(db, 'weeklyTimetables'), {
+            ...data,
+            assignedSSCId: (currentUser && currentUser.role === 'SSC') ? currentUser.uid : (data.assignedSSCId || currentUser?.uid || null),
+            createdAt: new Date().toISOString()
+          });
+          return { success: true, id: docRef.id };
+        }
       }
+
+      let snap;
+      if (currentUser && currentUser.role === 'SSC') {
+        snap = await getDocs(query(collection(db, 'weeklyTimetables'), where('assignedSSCId', '==', currentUser.uid)));
+      } else {
+        snap = await getDocs(collection(db, 'weeklyTimetables'));
+      }
+      let timetables = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       return { timetable: timetables, weekly_timetable: timetables };
     }
 
@@ -736,32 +773,35 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       if (method === 'POST') {
         const docRef = await addDoc(collection(db, 'classOccurrences'), {
           ...data,
+          assignedSSCId: (currentUser && currentUser.role === 'SSC') ? currentUser.uid : (data.assignedSSCId || null),
           createdAt: new Date().toISOString()
         });
         return { success: true, id: docRef.id };
       }
-      const snap = await getDocs(collection(db, 'classOccurrences'));
-      let classes = snap.docs.map(doc => mapClassDoc(doc.id, doc.data()));
-
+      let snap;
       if (currentUser && currentUser.role === 'SSC') {
-        classes = classes.filter(c => String(c.assigned_ssc_id) === String(currentUser.uid));
+        snap = await getDocs(query(collection(db, 'classOccurrences'), where('assignedSSCId', '==', currentUser.uid)));
+      } else {
+        snap = await getDocs(collection(db, 'classOccurrences'));
       }
+      let classes = snap.docs.map(doc => mapClassDoc(doc.id, doc.data()));
 
       return { classes: classes };
     }
 
     // Dashboard Metrics
     if (endpoint.startsWith('/api/dashboard')) {
-      const studentSnap = await getDocs(collection(db, 'students'));
-      const classSnap = await getDocs(collection(db, 'classOccurrences'));
+      let studentSnap, classSnap;
+      if (currentUser && currentUser.role === 'SSC') {
+        studentSnap = await getDocs(query(collection(db, 'students'), where('assignedSSCId', '==', currentUser.uid)));
+        classSnap = await getDocs(query(collection(db, 'classOccurrences'), where('assignedSSCId', '==', currentUser.uid)));
+      } else {
+        studentSnap = await getDocs(collection(db, 'students'));
+        classSnap = await getDocs(collection(db, 'classOccurrences'));
+      }
 
       let students = studentSnap.docs.map(doc => mapStudentDoc(doc.id, doc.data()));
       let classes = classSnap.docs.map(doc => mapClassDoc(doc.id, doc.data()));
-
-      if (currentUser && currentUser.role === 'SSC') {
-        students = students.filter(s => String(s.assigned_ssc_id) === String(currentUser.uid));
-        classes = classes.filter(c => String(c.assigned_ssc_id) === String(currentUser.uid));
-      }
 
       const todayStr = new Date().toISOString().split('T')[0];
       const classesToday = classes.filter(c => c.date === todayStr);
@@ -862,25 +902,33 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
 
     // Assessments & Followups
     if (endpoint.startsWith('/api/assessments')) {
-      const snap = await getDocs(collection(db, 'assessments'));
+      let snap;
+      if (currentUser && currentUser.role === 'SSC') {
+        snap = await getDocs(query(collection(db, 'assessments'), where('assignedSSCId', '==', currentUser.uid)));
+      } else {
+        snap = await getDocs(collection(db, 'assessments'));
+      }
       return { assessments: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) };
     }
 
     if (endpoint.startsWith('/api/reports')) {
-      const studentSnap = await getDocs(collection(db, 'students'));
-      const classSnap = await getDocs(collection(db, 'classOccurrences'));
-      const assessmentSnap = await getDocs(collection(db, 'assessments'));
-      const followupSnap = await getDocs(collection(db, 'followups'));
+      let studentSnap, classSnap, assessmentSnap, followupSnap;
+      if (currentUser && currentUser.role === 'SSC') {
+        studentSnap = await getDocs(query(collection(db, 'students'), where('assignedSSCId', '==', currentUser.uid)));
+        classSnap = await getDocs(query(collection(db, 'classOccurrences'), where('assignedSSCId', '==', currentUser.uid)));
+        assessmentSnap = await getDocs(query(collection(db, 'assessments'), where('assignedSSCId', '==', currentUser.uid)));
+        followupSnap = await getDocs(query(collection(db, 'followups'), where('assignedSSCId', '==', currentUser.uid)));
+      } else {
+        studentSnap = await getDocs(collection(db, 'students'));
+        classSnap = await getDocs(collection(db, 'classOccurrences'));
+        assessmentSnap = await getDocs(collection(db, 'assessments'));
+        followupSnap = await getDocs(collection(db, 'followups'));
+      }
 
       let students = studentSnap.docs.map(doc => mapStudentDoc(doc.id, doc.data()));
       let classes = classSnap.docs.map(doc => mapClassDoc(doc.id, doc.data()));
       let assessments = assessmentSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       let followups = followupSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      if (currentUser && currentUser.role === 'SSC') {
-        students = students.filter(s => String(s.assigned_ssc_id) === String(currentUser.uid) || String(s.assigned_ssc_id) === String(currentUser.user_id));
-        classes = classes.filter(c => String(c.assigned_ssc_id) === String(currentUser.uid));
-      }
 
       const studentStats = {};
       students.forEach(s => { const st = s.status || 'Active'; studentStats[st] = (studentStats[st] || 0) + 1; });
@@ -1329,19 +1377,25 @@ async function loadWeeklyMasterGrid() {
   const res = await fetchAPI(`/api/weekly-timetable?student_id=${studentFilter}`);
   if (!res) return;
 
-  const weeklySlots = res.weekly_timetable || res.timetable || [];
+  let weeklySlots = res.weekly_timetable || res.timetable || [];
+
+  if (studentFilter) {
+    weeklySlots = weeklySlots.filter(w => String(w.studentId || w.student_id) === String(studentFilter));
+  }
+
+  let studentsRes = await fetchAPI('/api/students');
+  const studentMap = {};
+  if (studentsRes && studentsRes.students) {
+    studentsRes.students.forEach(s => { studentMap[String(s.id)] = s.name; });
+  }
 
   const container = document.getElementById('weekly-master-grid');
   if (!container) return;
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const defaultSlots = ["04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"];
 
-  // Default operational time slots
-  const defaultSlots = [
-    "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM"
-  ];
-
-  let rawTimeslots = weeklySlots.map(w => w.start_time).filter(Boolean);
+  let rawTimeslots = weeklySlots.map(w => w.startTime || w.start_time).filter(Boolean);
   let timeslots = [...new Set([...defaultSlots, ...rawTimeslots])];
   timeslots.sort((a, b) => parseTimeToMinutesJS(a) - parseTimeToMinutesJS(b));
 
@@ -1351,7 +1405,6 @@ async function loadWeeklyMasterGrid() {
   });
 
   if (weeklySlots.length === 0) {
-    // Empty state banner inside first time slot row area
     timeslots.forEach((slot, sIdx) => {
       html += `<div class="grid-cell grid-time-label">${slot.replace(/^0/, '')}</div>`;
       if (sIdx === 0) {
@@ -1374,10 +1427,22 @@ async function loadWeeklyMasterGrid() {
     timeslots.forEach(slot => {
       html += `<div class="grid-cell grid-time-label">${slot.replace(/^0/, '')}</div>`;
       days.forEach(day => {
-        const matchingSlots = weeklySlots.filter(w => w.day_of_week === day && w.start_time === slot);
+        const matchingSlots = weeklySlots.filter(w => {
+          const wDay = w.dayOfWeek || w.day_of_week;
+          const wTime = w.startTime || w.start_time;
+          return wDay === day && wTime === slot;
+        });
+
         html += `<div class="grid-cell">`;
         matchingSlots.forEach(w => {
-          const subLower = (w.subject || '').toLowerCase();
+          const stId = String(w.studentId || w.student_id);
+          const stName = w.student_name || w.studentName || studentMap[stId] || ('Student ' + stId);
+          const facName = w.faculty_name || w.facultyName || 'Faculty';
+          const facultyShort = facName.split(' ')[0];
+          const subj = w.subject || 'Subject';
+          const durationStr = w.duration ? ` (${w.duration}m)` : '';
+
+          const subLower = subj.toLowerCase();
           let themeClass = 'tt-sub-default';
           if (subLower.includes('math')) themeClass = 'tt-sub-math';
           else if (subLower.includes('science')) themeClass = 'tt-sub-science';
@@ -1387,13 +1452,10 @@ async function loadWeeklyMasterGrid() {
           else if (subLower.includes('english')) themeClass = 'tt-sub-english';
           else if (subLower.includes('social')) themeClass = 'tt-sub-social';
 
-          const durationStr = w.duration ? ` (${w.duration}m)` : '';
-          const facultyShort = w.faculty_name ? escapeHTML(w.faculty_name.split(' ')[0]) : 'Faculty';
-
           html += `
-            <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(w.student_name)}', '${w.subject}', ${w.faculty_id}, '${w.day_of_week}', '${w.start_time}', '${w.effective_from}')">
-              <div class="tt-student">${escapeHTML(w.student_name)}</div>
-              <div class="tt-meta"><strong>${w.subject}</strong> • ${facultyShort}${durationStr}</div>
+            <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(stName)}', '${escapeHTML(subj)}', ${w.facultyId || w.faculty_id || 1}, '${w.dayOfWeek || w.day_of_week}', '${w.startTime || w.start_time}', '${w.effectiveFrom || w.effective_from || ''}')">
+              <div class="tt-student">${escapeHTML(stName)}</div>
+              <div class="tt-meta"><strong>${escapeHTML(subj)}</strong> • ${escapeHTML(facultyShort)}${durationStr}</div>
             </div>
           `;
         });
@@ -1581,6 +1643,50 @@ async function openClassOccurrenceDetailModal(classId) {
 let currentTimetableStudentData = null;
 let wtRowCounter = 0;
 
+function getSubjectTheme(subjectName) {
+  const name = String(subjectName || '').toLowerCase();
+  if (name.includes('math')) {
+    return { icon: '📐', primary: '#6366f1', bg: '#f5f3ff', border: '#c7d2fe', text: '#3730a3', pillBg: '#e0e7ff' };
+  } else if (name.includes('physic')) {
+    return { icon: '⚡', primary: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', text: '#5b21b6', pillBg: '#ede9fe' };
+  } else if (name.includes('chem')) {
+    return { icon: '🧪', primary: '#f97316', bg: '#fff7ed', border: '#fed7aa', text: '#9a3412', pillBg: '#ffedd5' };
+  } else if (name.includes('bio')) {
+    return { icon: '🧬', primary: '#059669', bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46', pillBg: '#d1fae5' };
+  } else if (name.includes('sci')) {
+    return { icon: '🔬', primary: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46', pillBg: '#d1fae5' };
+  } else if (name.includes('eng')) {
+    return { icon: '📖', primary: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af', pillBg: '#dbeafe' };
+  } else if (name.includes('soc') || name.includes('hist') || name.includes('geo')) {
+    return { icon: '🌐', primary: '#06b6d4', bg: '#ecfeff', border: '#a5f3fc', text: '#155e75', pillBg: '#cffafe' };
+  }
+  return { icon: '📘', primary: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe', text: '#3730a3', pillBg: '#e0e7ff' };
+}
+
+function updateWorkflowStepIndicator(stepNumber) {
+  for (let i = 1; i <= 4; i++) {
+    const stepElem = document.getElementById(`wt-step-${i}`);
+    if (stepElem) {
+      const badge = stepElem.querySelector('span:first-child');
+      if (i <= stepNumber) {
+        stepElem.style.color = '#4f46e5';
+        stepElem.style.fontWeight = '700';
+        if (badge) {
+          badge.style.background = '#4f46e5';
+          badge.style.color = '#ffffff';
+        }
+      } else {
+        stepElem.style.color = '#64748b';
+        stepElem.style.fontWeight = '600';
+        if (badge) {
+          badge.style.background = '#e2e8f0';
+          badge.style.color = '#64748b';
+        }
+      }
+    }
+  }
+}
+
 function openSetWeeklyTimetableModal() {
   document.getElementById('form-set-weekly-timetable')?.reset();
   const effInput = document.getElementById('wt-effective-from');
@@ -1595,8 +1701,10 @@ function openSetWeeklyTimetableModal() {
   const container = document.getElementById('wt-subjects-container');
   if (container) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 32px 16px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-        👈 Please select a student above to load assigned subjects and configure their weekly timetable.
+      <div style="text-align: center; padding: 40px 20px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+        <div style="font-size: 2rem; margin-bottom: 8px;">👈</div>
+        <div style="font-weight: 600; color: #334155; margin-bottom: 4px;">Select a Student Above</div>
+        <div style="font-size: 0.85rem; color: #64748b;">Choose a student from the dropdown above to load assigned subjects and configure their weekly timetable.</div>
       </div>`;
   }
 
@@ -1609,6 +1717,7 @@ function openSetWeeklyTimetableModal() {
   const saveBtn = document.getElementById('wt-save-btn');
   if (saveBtn) saveBtn.disabled = true;
 
+  updateWorkflowStepIndicator(1);
   currentTimetableStudentData = null;
   loadStudentsListForDropdowns();
   document.getElementById('modal-set-weekly-timetable')?.classList.add('active');
@@ -1636,43 +1745,38 @@ async function onStudentSelectForTimetable(studentId) {
     if (studentInfoCard) studentInfoCard.style.display = 'none';
     if (container) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 32px 16px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
-          👈 Please select a student above to load assigned subjects and configure their weekly timetable.
+        <div style="text-align: center; padding: 40px 20px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">👈</div>
+          <div style="font-weight: 600; color: #334155; margin-bottom: 4px;">Select a Student Above</div>
+          <div style="font-size: 0.85rem; color: #64748b;">Choose a student from the dropdown above to load assigned subjects and configure their weekly timetable.</div>
         </div>`;
     }
     if (badge) badge.textContent = '0 Subjects';
     if (summaryCard) summaryCard.style.display = 'none';
     if (saveBtn) saveBtn.disabled = true;
+    updateWorkflowStepIndicator(1);
     currentTimetableStudentData = null;
     return;
   }
 
   if (container) {
-    container.innerHTML = '<div style="text-align:center; padding: 24px;"><span class="spinner"></span> Loading student subjects & timetable...</div>';
+    container.innerHTML = '<div style="text-align:center; padding: 32px 16px; color: #4f46e5; font-weight: 600;"><span class="spinner"></span> Loading student details & assigned subjects...</div>';
   }
 
   const res = await fetchAPI(`/api/students/${studentId}`);
   if (!res || !res.student) {
-    if (container) container.innerHTML = '<div style="color:red; text-align:center; padding:20px;">Failed to load student details.</div>';
+    if (container) {
+      container.innerHTML = `
+        <div style="color: #dc2626; text-align: center; padding: 24px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; font-weight: 600;">
+          Unable to load student details. Please try again.
+        </div>`;
+    }
+    if (saveBtn) saveBtn.disabled = true;
     return;
   }
 
   const st = res.student;
   currentTimetableStudentData = st;
-
-  // Render Student Info Card
-  if (studentInfoCard) {
-    studentInfoCard.style.display = 'block';
-    studentInfoCard.innerHTML = `
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 0.85rem;">
-        <div><strong>Student Name:</strong> ${escapeHTML(st.name)}</div>
-        <div><strong>Reg No:</strong> ${escapeHTML(st.register_no || ('MM-2026-' + String(st.id).padStart(4, '0')))}</div>
-        <div><strong>Grade & Board:</strong> ${escapeHTML(st.grade)} (${escapeHTML(st.board || 'CBSE')})</div>
-        <div><strong>Program:</strong> ${escapeHTML(st.program)}</div>
-        <div><strong>Assigned SSC:</strong> ${escapeHTML(st.ssc_name || 'Unassigned')}</div>
-      </div>
-    `;
-  }
 
   // Normalize student subjects array
   let subjects = [];
@@ -1699,15 +1803,58 @@ async function onStudentSelectForTimetable(studentId) {
     }).filter(Boolean);
   }
 
-  if (subjects.length === 0) {
-    subjects = [
-      { subject: 'Mathematics', faculty_id: '', faculty_name: st.primary_faculty_name || 'Anjali Sharma', faculty_phone: st.primary_faculty_phone || '' },
-      { subject: 'Science', faculty_id: '', faculty_name: 'Rahul Verma', faculty_phone: '' }
-    ];
-  }
-
   currentTimetableStudentData.subjects_detail = subjects;
 
+  // Render Student Context Card
+  if (studentInfoCard) {
+    studentInfoCard.style.display = 'block';
+    const regNo = st.register_no || st.register_number || (`MM-2026-${String(st.id).padStart(4, '0')}`);
+    const gradeStr = st.grade || 'Grade 8';
+    const boardStr = st.board || 'CBSE';
+    const programStr = st.program || st.package_name || 'Classmate';
+    const sscStr = st.ssc_name || 'Ananya Sharma';
+
+    studentInfoCard.innerHTML = `
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #4f46e5; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+              <span>👤 ${escapeHTML(st.name)}</span>
+              <span style="font-size: 0.78rem; font-weight: 600; background: #eef2ff; color: #4f46e5; padding: 2px 8px; border-radius: 4px; font-family: monospace;">Reg: ${escapeHTML(regNo)}</span>
+            </div>
+            <div style="font-size: 0.85rem; color: #475569; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 16px;">
+              <span>🎓 <strong>Grade:</strong> ${escapeHTML(gradeStr)} • ${escapeHTML(boardStr)}</span>
+              <span>📦 <strong>Program:</strong> ${escapeHTML(programStr)}</span>
+              <span>👔 <strong>SSC:</strong> ${escapeHTML(sscStr)}</span>
+            </div>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 8px; text-align: center; min-width: 120px;">
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em;">Assigned Subjects</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #4f46e5; margin-top: 2px;">${subjects.length}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (subjects.length === 0) {
+    if (badge) badge.textContent = '0 Subjects';
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 36px 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 12px 0;">
+          <div style="font-size: 2.2rem; margin-bottom: 8px;">📚</div>
+          <h4 style="margin: 0 0 6px 0; font-size: 1rem; color: #1e293b; font-weight: 700;">No Subjects Assigned</h4>
+          <p style="margin: 0; font-size: 0.85rem; color: #64748b; max-width: 440px; margin: 0 auto;">
+            This student does not have any assigned subjects yet. Assign subjects before creating the weekly timetable.
+          </p>
+        </div>`;
+    }
+    if (saveBtn) saveBtn.disabled = true;
+    updateWorkflowStepIndicator(1);
+    return;
+  }
+
+  updateWorkflowStepIndicator(2);
   if (badge) badge.textContent = `${subjects.length} Enrolled Subject${subjects.length === 1 ? '' : 's'}`;
 
   if (container) {
@@ -1728,24 +1875,26 @@ function renderSubjectCard(container, sub, idx, existingSlots) {
   const cardId = `wt-subject-card-${idx}`;
   const tableBodyId = `wt-subject-slots-body-${idx}`;
   const badgeId = `wt-subject-badge-${idx}`;
+  const theme = getSubjectTheme(sub.subject);
 
   const hasSlots = existingSlots && existingSlots.length > 0;
   const statusBadge = hasSlots 
-    ? `<span id="${badgeId}" class="badge badge-success" style="font-size: 0.75rem;">✓ ${existingSlots.length} Slot${existingSlots.length === 1 ? '' : 's'} Configured</span>`
-    : `<span id="${badgeId}" class="badge badge-warning" style="font-size: 0.75rem; background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⚠ Timetable Not Set</span>`;
+    ? `<span id="${badgeId}" class="badge" style="font-size: 0.78rem; font-weight: 700; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 20px;">✓ ${existingSlots.length} Slot${existingSlots.length === 1 ? '' : 's'} Configured</span>`
+    : `<span id="${badgeId}" class="badge" style="font-size: 0.78rem; font-weight: 700; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 20px;">⚠ No Slots Configured</span>`;
 
-  const facultyPhoneStr = sub.faculty_phone ? `📞 ${escapeHTML(sub.faculty_phone)}` : '📞 No contact phone';
+  const facultyPhoneStr = sub.faculty_phone ? `📞 ${escapeHTML(sub.faculty_phone)}` : '';
 
   const cardHtml = `
-    <div id="${cardId}" class="card" style="margin-bottom: 16px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+    <div id="${cardId}" class="wt-subject-card" style="margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+      <!-- Card Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: ${theme.bg}; border-bottom: 1px solid ${theme.border}; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h5 style="margin: 0; font-size: 1rem; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 6px;">
-            <span>📖 ${escapeHTML(sub.subject)}</span>
+          <h5 style="margin: 0; font-size: 1.05rem; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <span>${theme.icon} ${escapeHTML(sub.subject)}</span>
           </h5>
-          <div style="font-size: 0.8rem; color: #475569; margin-top: 2px;">
-            Faculty: <strong>${escapeHTML(sub.faculty_name || 'Unassigned')}</strong> &nbsp;|&nbsp; 
-            <span style="color: #0284c7;">${facultyPhoneStr}</span>
+          <div style="font-size: 0.82rem; color: #475569; margin-top: 3px; display: flex; align-items: center; gap: 10px;">
+            <span>Faculty: <strong style="color: #1e293b;">${escapeHTML(sub.faculty_name || 'Unassigned Faculty')}</strong></span>
+            ${facultyPhoneStr ? `<span style="color: #4f46e5; font-weight: 500;">${facultyPhoneStr}</span>` : ''}
           </div>
         </div>
         <div>
@@ -1753,24 +1902,26 @@ function renderSubjectCard(container, sub, idx, existingSlots) {
         </div>
       </div>
 
-      <table class="table" style="width: 100%; font-size: 0.85rem; margin-bottom: 10px; border-collapse: collapse;">
-        <thead>
-          <tr style="background: #f8fafc; text-align: left; font-size: 0.75rem; color: #64748b;">
-            <th style="padding: 6px 8px; width: 22%;">Day of Week *</th>
-            <th style="padding: 6px 8px; width: 24%;">Start Time *</th>
-            <th style="padding: 6px 8px; width: 22%;">Duration *</th>
-            <th style="padding: 6px 8px; width: 24%;">Meeting Link</th>
-            <th style="padding: 6px 8px; width: 8%; text-align: center;">Action</th>
-          </tr>
-        </thead>
-        <tbody id="${tableBodyId}">
-          <!-- Slot rows inserted here -->
-        </tbody>
-      </table>
+      <div style="padding: 16px 20px;">
+        <table class="table" style="width: 100%; font-size: 0.85rem; margin-bottom: 12px; border-collapse: collapse;">
+          <thead>
+            <tr style="background: #f8fafc; text-align: left; font-size: 0.75rem; color: #475569; text-transform: uppercase; letter-spacing: 0.03em;">
+              <th style="padding: 8px 10px; width: 22%; border-radius: 6px 0 0 6px;">Day of Week *</th>
+              <th style="padding: 8px 10px; width: 24%;">Start Time *</th>
+              <th style="padding: 8px 10px; width: 24%;">Duration *</th>
+              <th style="padding: 8px 10px; width: 22%;">Meeting Link</th>
+              <th style="padding: 8px 10px; width: 8%; text-align: center; border-radius: 0 6px 6px 0;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="${tableBodyId}">
+            <!-- Slot rows inserted here -->
+          </tbody>
+        </table>
 
-      <button type="button" class="btn btn-sm btn-outline" onclick="addSubjectSlotRow('${idx}', '${escapeHTML(sub.subject)}', '${sub.faculty_id}')" style="font-size: 0.8rem; border-style: dashed;">
-        + Add Slot for ${escapeHTML(sub.subject)}
-      </button>
+        <button type="button" class="btn btn-sm" onclick="addSubjectSlotRow('${idx}', '${escapeHTML(sub.subject)}', '${sub.faculty_id}')" style="width: 100%; padding: 8px; font-weight: 600; font-size: 0.85rem; background: #f8fafc; border: 1px dashed #cbd5e1; color: #475569; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease;">
+          <span>+ Add Weekly Slot for ${escapeHTML(sub.subject)}</span>
+        </button>
+      </div>
     </div>
   `;
 
@@ -1817,20 +1968,20 @@ function addSubjectSlotRow(subjectIdx, subjectName, facultyId, slotData = null) 
 
   const rowHtml = `
     <tr id="${rowId}" class="wt-slot-row" data-subject-idx="${subjectIdx}" data-subject="${escapeHTML(subjectName)}" data-faculty-id="${facultyId}" style="border-bottom: 1px solid #f1f5f9;">
-      <td style="padding: 6px 8px;">
-        <select class="form-control wt-row-day" style="padding: 4px 8px; font-size: 0.85rem;" onchange="updateTimetableVisualSummary()">
+      <td style="padding: 8px 10px;">
+        <select class="form-control wt-row-day" style="padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%;" onchange="updateTimetableVisualSummary()">
           ${daysOptions}
         </select>
       </td>
-      <td style="padding: 6px 8px;">
-        <select class="form-control wt-row-time" style="padding: 4px 8px; font-size: 0.85rem;" onchange="updateTimetableVisualSummary()">
+      <td style="padding: 8px 10px;">
+        <select class="form-control wt-row-time" style="padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%;" onchange="updateTimetableVisualSummary()">
           ${customTimeOpt}
           ${timeOptions}
         </select>
       </td>
-      <td style="padding: 6px 8px;">
-        <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-          <select class="form-control wt-row-duration" style="padding: 4px 8px; font-size: 0.85rem; flex: 1; min-width: 85px;" onchange="handleDurationChange(this)">
+      <td style="padding: 8px 10px;">
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+          <select class="form-control wt-row-duration" style="padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; border: 1px solid #cbd5e1; flex: 1; min-width: 90px;" onchange="handleDurationChange(this)">
             <option value="30" ${selectDurVal === '30' ? 'selected' : ''}>30 min</option>
             <option value="45" ${selectDurVal === '45' ? 'selected' : ''}>45 min</option>
             <option value="60" ${selectDurVal === '60' ? 'selected' : ''}>60 min</option>
@@ -1839,15 +1990,15 @@ function addSubjectSlotRow(subjectIdx, subjectName, facultyId, slotData = null) 
             <option value="120" ${selectDurVal === '120' ? 'selected' : ''}>120 min</option>
             <option value="custom" ${selectDurVal === 'custom' ? 'selected' : ''}>Custom...</option>
           </select>
-          <input type="number" class="form-control wt-row-custom-duration" min="15" max="300" placeholder="Mins" value="${isCustomDur ? durVal : ''}" style="width: 60px; padding: 4px 6px; font-size: 0.85rem; display: ${isCustomDur ? 'block' : 'none'};" oninput="updateTimetableVisualSummary()">
-          <span class="wt-row-endtime-badge" style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe;">→ 05:00 PM</span>
+          <input type="number" class="form-control wt-row-custom-duration" min="15" max="300" placeholder="Mins" value="${isCustomDur ? durVal : ''}" style="width: 60px; padding: 6px; font-size: 0.85rem; border-radius: 6px; border: 1px solid #cbd5e1; display: ${isCustomDur ? 'block' : 'none'};" oninput="updateTimetableVisualSummary()">
+          <span class="wt-row-endtime-badge" style="font-size: 0.78rem; font-weight: 700; color: #4f46e5; background: #eef2ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #c7d2fe; white-space: nowrap;">→ 05:00 PM</span>
         </div>
       </td>
-      <td style="padding: 6px 8px;">
-        <input type="url" class="form-control wt-row-link" style="padding: 4px 8px; font-size: 0.8rem;" value="${escapeHTML(meetVal)}">
+      <td style="padding: 8px 10px;">
+        <input type="url" class="form-control wt-row-link" style="padding: 6px 10px; font-size: 0.82rem; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%;" value="${escapeHTML(meetVal)}" placeholder="https://meet.google.com/...">
       </td>
-      <td style="padding: 6px 8px; text-align: center;">
-        <button type="button" class="btn btn-sm" style="color: #ef4444; background: none; border: none; padding: 2px 6px; cursor: pointer;" onclick="removeSubjectSlotRow('${rowId}', '${subjectIdx}')" title="Remove Slot">
+      <td style="padding: 8px 10px; text-align: center;">
+        <button type="button" class="btn btn-sm" style="color: #ef4444; background: #fef2f2; border: 1px solid #fecaca; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" onclick="removeSubjectSlotRow('${rowId}', '${subjectIdx}')" title="Remove Slot">
           🗑
         </button>
       </td>
@@ -1883,6 +2034,7 @@ function updateTimetableVisualSummary() {
   const rows = document.querySelectorAll('.wt-slot-row');
   const summaryCard = document.getElementById('wt-summary-card');
   const summaryContainer = document.getElementById('wt-visual-summary');
+  const metricsContainer = document.getElementById('wt-summary-metrics');
 
   if (currentTimetableStudentData && currentTimetableStudentData.subjects_detail) {
     currentTimetableStudentData.subjects_detail.forEach((sub, idx) => {
@@ -1891,17 +2043,17 @@ function updateTimetableVisualSummary() {
       if (tableBody && badge) {
         const rowCount = tableBody.querySelectorAll('.wt-slot-row').length;
         if (rowCount > 0) {
-          badge.className = 'badge badge-success';
-          badge.style.background = '';
-          badge.style.color = '';
-          badge.style.border = '';
+          badge.className = 'badge';
+          badge.style.background = '#dcfce7';
+          badge.style.color = '#166534';
+          badge.style.border = '1px solid #bbf7d0';
           badge.textContent = `✓ ${rowCount} Slot${rowCount === 1 ? '' : 's'} Configured`;
         } else {
-          badge.className = 'badge badge-warning';
+          badge.className = 'badge';
           badge.style.background = '#fef3c7';
           badge.style.color = '#92400e';
           badge.style.border = '1px solid #fde68a';
-          badge.textContent = '⚠ Timetable Not Set';
+          badge.textContent = '⚠ No Slots Configured';
         }
       }
     });
@@ -1911,10 +2063,12 @@ function updateTimetableVisualSummary() {
 
   if (rows.length === 0) {
     summaryCard.style.display = 'none';
+    updateWorkflowStepIndicator(2);
     return;
   }
 
   summaryCard.style.display = 'block';
+  updateWorkflowStepIndicator(3);
 
   const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const slotsByDay = {};
@@ -1922,6 +2076,7 @@ function updateTimetableVisualSummary() {
 
   let hasConflict = false;
   let conflictMessage = '';
+  const configuredSubjectsSet = new Set();
 
   const parsedSlots = [];
   rows.forEach(r => {
@@ -1932,6 +2087,8 @@ function updateTimetableVisualSummary() {
     const duration = durSelect === 'custom' ? (parseInt(customDur, 10) || 60) : parseInt(durSelect, 10);
     const subject = r.getAttribute('data-subject');
     const facultyId = r.getAttribute('data-faculty-id');
+
+    if (subject) configuredSubjectsSet.add(subject);
 
     const startMin = parseTimeToMinutesJS(time);
     const endMin = startMin + duration;
@@ -1950,6 +2107,14 @@ function updateTimetableVisualSummary() {
       slotsByDay[day].push(slotObj);
     }
   });
+
+  if (metricsContainer) {
+    metricsContainer.innerHTML = `
+      <span>Total Weekly Classes: <strong>${parsedSlots.length}</strong></span>
+      <span>•</span>
+      <span>Subjects Configured: <strong>${configuredSubjectsSet.size}</strong></span>
+    `;
+  }
 
   for (let i = 0; i < parsedSlots.length; i++) {
     for (let j = i + 1; j < parsedSlots.length; j++) {
@@ -1971,27 +2136,41 @@ function updateTimetableVisualSummary() {
 
   let html = '';
   if (hasConflict) {
-    html += `<div style="width: 100%; padding: 8px 12px; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; font-size: 0.85rem; margin-bottom: 8px; font-weight: 600;">
+    html += `<div style="width: 100%; padding: 10px 14px; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; font-size: 0.85rem; margin-bottom: 8px; font-weight: 600;">
       ⚠ ${conflictMessage}
     </div>`;
   }
 
   daysOrder.forEach(day => {
     const list = slotsByDay[day];
-    if (list && list.length > 0) {
+    const classCount = list ? list.length : 0;
+
+    if (classCount > 0) {
       list.sort((x, y) => x.startMin - y.startMin);
-      const slotPills = list.map(s => 
-        `<span style="background: #ffffff; border: 1px solid #bbf7d0; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #166534; font-weight: 600;">
-          ${escapeHTML(s.subject)}: ${s.time.replace(/^0/, '')} - ${s.endStr} (${s.duration} min)
-        </span>`
-      ).join('');
+      const slotPills = list.map(s => {
+        const theme = getSubjectTheme(s.subject);
+        return `<span style="background: ${theme.bg}; border: 1px solid ${theme.border}; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; color: ${theme.text}; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+          ${theme.icon} ${escapeHTML(s.subject)}: ${s.time.replace(/^0/, '')} – ${s.endStr} (${s.duration} min)
+        </span>`;
+      }).join('');
 
       html += `
-        <div style="background: #dcfce7; padding: 8px 12px; border-radius: 6px; flex: 1; min-width: 220px;">
-          <strong style="color: #14532d; font-size: 0.85rem;">${day}:</strong>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="min-width: 110px;">
+            <strong style="color: #0f172a; font-size: 0.85rem;">${day}</strong>
+            <span style="font-size: 0.75rem; color: #64748b; margin-left: 6px;">(${classCount} class${classCount === 1 ? '' : 'es'})</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; flex: 1;">
             ${slotPills}
           </div>
+        </div>`;
+    } else {
+      html += `
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; opacity: 0.65;">
+          <div style="min-width: 110px;">
+            <strong style="color: #64748b; font-size: 0.82rem;">${day}</strong>
+          </div>
+          <div style="font-size: 0.78rem; color: #94a3b8; font-style: italic;">No classes scheduled</div>
         </div>`;
     }
   });
@@ -2060,6 +2239,11 @@ async function handleSetWeeklyTimetableSubmit(e) {
       meeting_link
     });
   });
+
+  if (slots.length === 0) {
+    alert('Please configure at least one weekly slot before saving.');
+    return;
+  }
 
   const payload = {
     student_id: parseInt(studentId, 10),
@@ -5702,7 +5886,11 @@ Object.assign(window, {
   archiveStudent,
   openSetWeeklyTimetableModal,
   openSetWeeklyTimetableModalForStudent,
+  onStudentSelectForTimetable,
   handleSetWeeklyTimetableSubmit,
+  updateWorkflowStepIndicator,
+  updateTimetableVisualSummary,
+  getSubjectTheme,
   openEditWeeklySlotModal,
   handleEditWeeklySlotSubmit,
   removeWeeklySlot,
