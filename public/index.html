@@ -1793,81 +1793,115 @@
         <!-- REPORTS VIEW -->
         <section id="view-reports" class="page-view">
           <!-- Operational Reporting Control Toolbar -->
-          <div class="card margin-bottom-lg" style="padding: 16px 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div class="card margin-bottom-lg" style="padding: 18px 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; margin-bottom: 14px;">
               <div>
-                <h3 style="margin: 0 0 2px 0; color: #0f172a; font-size: 1.15rem; font-weight: 800;">Operational Reports</h3>
-                <p style="margin: 0; font-size: 12px; color: #64748b;">Student, academic, class, faculty and service performance overview</p>
+                <h3 style="margin: 0 0 2px 0; color: #0f172a; font-size: 1.2rem; font-weight: 800;">Operational Reports</h3>
+                <p style="margin: 0; font-size: 0.85rem; color: #64748b;">System-wide academic, student, faculty and operational performance oversight</p>
               </div>
-              
-              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <label style="font-size: 12px; font-weight: 700; color: #475569;">Period:</label>
-                  <select id="rpt-filter-period" class="form-control" style="width: auto; padding: 6px 10px; font-size: 13px;" onchange="loadReports()">
-                    <option value="ALL" selected>All Time</option>
-                    <option value="TODAY">Today</option>
-                    <option value="THIS_WEEK">This Week</option>
-                    <option value="THIS_MONTH">This Month</option>
-                  </select>
-                </div>
+              <button class="btn btn-primary" onclick="loadReports()" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <span>🔄 Refresh Reports</span>
+              </button>
+            </div>
 
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <label style="font-size: 12px; font-weight: 700; color: #475569;">SSC:</label>
-                  <select id="rpt-filter-ssc" class="form-control" style="width: auto; padding: 6px 10px; font-size: 13px;" onchange="loadReports()">
-                    <option value="">All SSCs</option>
-                  </select>
-                </div>
+            <!-- Multi-Dimensional Report Filters Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-items: center;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">Period:</label>
+                <select id="rpt-filter-period" class="form-control" style="padding: 6px 10px; font-size: 0.82rem;" onchange="loadReports()">
+                  <option value="ALL" selected>All Time</option>
+                  <option value="TODAY">Today</option>
+                  <option value="THIS_WEEK">This Week</option>
+                  <option value="THIS_MONTH">This Month</option>
+                </select>
+              </div>
 
-                <button class="btn btn-outline" onclick="loadReports()" style="padding: 6px 12px; font-size: 13px;">🔄 Refresh Data</button>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">SSC:</label>
+                <select id="rpt-filter-ssc" class="form-control" style="padding: 6px 10px; font-size: 0.82rem;" onchange="loadReports()">
+                  <option value="">All SSCs</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">Program:</label>
+                <select id="rpt-filter-program" class="form-control" style="padding: 6px 10px; font-size: 0.82rem;" onchange="loadReports()">
+                  <option value="">All Programs</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">Grade:</label>
+                <select id="rpt-filter-grade" class="form-control" style="padding: 6px 10px; font-size: 0.82rem;" onchange="loadReports()">
+                  <option value="">All Grades</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">Faculty:</label>
+                <select id="rpt-filter-faculty" class="form-control" style="padding: 6px 10px; font-size: 0.82rem;" onchange="loadReports()">
+                  <option value="">All Faculty</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.72rem; font-weight: 700; color: #475569; text-transform: uppercase;">Status:</label>
+                <select id="rpt-filter-status" class="form-control" style="padding: 6px 10px; font-size: 0.82rem;" onchange="loadReports()">
+                  <option value="">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Unassigned">Unassigned</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Completed">Completed</option>
+                </select>
               </div>
             </div>
           </div>
 
-          <!-- C2: Top KPI Strip -->
-          <div class="kpi-grid-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px;">
-            <div class="card stat-card" style="padding: 14px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Active Students</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 4px;" id="rpt-kpi-students">0</div>
+          <!-- Top System KPI Strip (8 Compact KPI Cards) -->
+          <div class="kpi-grid-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px;">
+            <div class="card stat-card" style="padding: 12px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Total Students</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;" id="rpt-kpi-total-students">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #1e40af; letter-spacing: 0.5px;">New Enrollments</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #1e3a8a; margin-top: 4px;" id="rpt-kpi-new-students">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Active Students</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #14532d; margin-top: 2px;" id="rpt-kpi-students">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Classes Scheduled</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 4px;" id="rpt-kpi-classes">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #c2410c; letter-spacing: 0.5px;">Unassigned</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #7c2d12; margin-top: 2px;" id="rpt-kpi-unassigned-students">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Classes Conducted</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #14532d; margin-top: 4px;" id="rpt-kpi-conducted">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #1e40af; letter-spacing: 0.5px;">Total SSCs</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #1e3a8a; margin-top: 2px;" id="rpt-kpi-sscs">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #7e22ce; letter-spacing: 0.5px;">Rescheduled</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #581c87; margin-top: 4px;" id="rpt-kpi-rescheduled">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #475569; letter-spacing: 0.5px;">Total Faculty</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;" id="rpt-kpi-faculty">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #0369a1; letter-spacing: 0.5px;">Assessments Done</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #0c4a6e; margin-top: 4px;" id="rpt-kpi-assessments">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Scheduled</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-top: 2px;" id="rpt-kpi-classes">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #c2410c; letter-spacing: 0.5px;">Pending Follow-ups</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #7c2d12; margin-top: 4px;" id="rpt-kpi-followups">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Conducted</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #14532d; margin-top: 2px;" id="rpt-kpi-conducted">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #b91c1c; letter-spacing: 0.5px;">Packages Ending</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #7f1d1d; margin-top: 4px;" id="rpt-kpi-renewals">0</div>
+            <div class="card stat-card" style="padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: #b91c1c; letter-spacing: 0.5px;">Pending Follow-ups</span>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #7f1d1d; margin-top: 2px;" id="rpt-kpi-followups">0</div>
             </div>
           </div>
 
           <!-- Grid of Report Sections (2 Columns Desktop) -->
           <div class="reports-section-grid">
             
-            <!-- C3: Student Enrollment & Activity -->
+            <!-- Section 1: Student Enrollment & Distribution -->
             <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
                   <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                    <span>🎓 Student Enrollment & Activity</span>
+                    <span>🎓 Student Enrollment & Distribution</span>
                   </h4>
                   <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Breakdown by status, grade, program, and SSC allocation</p>
                 </div>
@@ -1876,7 +1910,7 @@
               <div id="report-students-stats"></div>
             </div>
 
-            <!-- C4: Class Operations Breakdown -->
+            <!-- Section 2: Class Operations & Delivery Performance -->
             <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
@@ -1890,7 +1924,7 @@
               <div id="report-classes-stats"></div>
             </div>
 
-            <!-- C5: Faculty Assignment & Payment Report (Full Width) -->
+            <!-- Section 3: Faculty Assignment & Payment Report (Full Width) -->
             <div class="card" style="grid-column: 1 / -1; padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
@@ -1904,7 +1938,21 @@
               <div id="report-faculty-payout-stats"></div>
             </div>
 
-            <!-- C6: Assessments & Academic Progress -->
+            <!-- Section 4: SSC Operations & Workload Overview -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>👥 SSC Operations & Workload</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">SSC student assignments, follow-up load, and coordinator oversight</p>
+                </div>
+                <span class="badge badge-secondary">SSC Team</span>
+              </div>
+              <div id="report-ssc-stats"></div>
+            </div>
+
+            <!-- Section 5: Assessments & Academic Progress -->
             <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
@@ -1918,7 +1966,7 @@
               <div id="report-assessments-stats"></div>
             </div>
 
-            <!-- C7: SSC Follow-up Operations -->
+            <!-- Section 6: SSC Follow-up Operations -->
             <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
@@ -1932,7 +1980,7 @@
               <div id="report-followups-stats"></div>
             </div>
 
-            <!-- C8: Package & Renewal Visibility (Full Width) -->
+            <!-- Section 7: Package & Renewal Visibility (Full Width) -->
             <div class="card" style="grid-column: 1 / -1; padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>

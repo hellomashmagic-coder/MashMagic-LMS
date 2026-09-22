@@ -11,6 +11,7 @@ let currentUser = null;
 let currentView = 'dashboard';
 let cachedStudents = [];
 let cachedFaculty = [];
+let cachedFaculties = [];
 let cachedSSCs = [];
 let selectedStudentId = null;
 
@@ -3509,33 +3510,78 @@ async function completeFollowup(fuId) {
 }
 
 // 12. REPORTS MODULE
+// 12. REPORTS MODULE
 async function loadReports() {
-  // Populate SSC filter if not populated
   const sscSelect = document.getElementById('rpt-filter-ssc');
+  const facSelect = document.getElementById('rpt-filter-faculty');
+  const progSelect = document.getElementById('rpt-filter-program');
+  const gradeSelect = document.getElementById('rpt-filter-grade');
+
+  let sscs = cachedSSCs || [];
+  let faculties = cachedFaculties || [];
+
   if (sscSelect && sscSelect.options.length <= 1) {
     const sscRes = await fetchAPI('/api/users/sscs');
     if (sscRes && sscRes.sscs) {
+      sscs = sscRes.sscs;
+      cachedSSCs = sscs;
       let optionsHtml = '<option value="">All SSCs</option>';
-      sscRes.sscs.forEach(s => {
+      sscs.forEach(s => {
         optionsHtml += `<option value="${s.id}">${escapeHTML(s.name)}</option>`;
       });
       sscSelect.innerHTML = optionsHtml;
     }
   }
 
+  if (facSelect && facSelect.options.length <= 1) {
+    const facRes = await fetchAPI('/api/faculty');
+    if (facRes && facRes.faculties) {
+      faculties = facRes.faculties;
+      cachedFaculties = faculties;
+      let optionsHtml = '<option value="">All Faculty</option>';
+      faculties.forEach(f => {
+        optionsHtml += `<option value="${f.id}">${escapeHTML(f.name)}</option>`;
+      });
+      facSelect.innerHTML = optionsHtml;
+    }
+  }
+
   const periodVal = document.getElementById('rpt-filter-period')?.value || 'ALL';
   const sscVal = document.getElementById('rpt-filter-ssc')?.value || '';
+  const programVal = document.getElementById('rpt-filter-program')?.value || '';
+  const gradeVal = document.getElementById('rpt-filter-grade')?.value || '';
+  const facultyVal = document.getElementById('rpt-filter-faculty')?.value || '';
+  const statusVal = document.getElementById('rpt-filter-status')?.value || '';
 
   const res = await fetchAPI('/api/reports');
   if (!res) return;
 
-  // Raw items from API/Firestore
-  let students = res.studentsList || [];
-  let classes = res.classesList || [];
-  let assessments = res.assessmentsList || [];
-  let followups = res.followupsList || [];
+  let rawStudents = res.studentsList || [];
+  let rawClasses = res.classesList || [];
+  let rawAssessments = res.assessmentsList || [];
+  let rawFollowups = res.followupsList || [];
 
-  // Filter by SSC if selected
+  // Populate Program & Grade dropdown options if empty
+  if (progSelect && progSelect.options.length <= 1 && rawStudents.length > 0) {
+    const programs = Array.from(new Set(rawStudents.map(s => s.program).filter(Boolean)));
+    let pOptions = '<option value="">All Programs</option>';
+    programs.forEach(p => { pOptions += `<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`; });
+    progSelect.innerHTML = pOptions;
+  }
+
+  if (gradeSelect && gradeSelect.options.length <= 1 && rawStudents.length > 0) {
+    const grades = Array.from(new Set(rawStudents.map(s => s.grade).filter(Boolean))).sort();
+    let gOptions = '<option value="">All Grades</option>';
+    grades.forEach(g => { gOptions += `<option value="${escapeHTML(g)}">${escapeHTML(g)}</option>`; });
+    gradeSelect.innerHTML = gOptions;
+  }
+
+  // Filter datasets based on active controls
+  let students = [...rawStudents];
+  let classes = [...rawClasses];
+  let assessments = [...rawAssessments];
+  let followups = [...rawFollowups];
+
   if (sscVal) {
     students = students.filter(s => String(s.assigned_ssc_id) === String(sscVal));
     classes = classes.filter(c => String(c.assigned_ssc_id) === String(sscVal));
@@ -3543,7 +3589,25 @@ async function loadReports() {
     followups = followups.filter(f => String(f.assigned_ssc_id) === String(sscVal));
   }
 
-  // Filter by Period if date filter applied
+  if (programVal) {
+    students = students.filter(s => s.program === programVal);
+  }
+
+  if (gradeVal) {
+    students = students.filter(s => s.grade === gradeVal);
+  }
+
+  if (facultyVal) {
+    classes = classes.filter(c => String(c.faculty_id) === String(facultyVal) || c.faculty_name === facultyVal);
+  }
+
+  if (statusVal) {
+    if (statusVal === 'Active') students = students.filter(s => s.status === 'Active');
+    else if (statusVal === 'Unassigned') students = students.filter(s => !s.assigned_ssc_id || s.assigned_ssc_id === 'unassigned');
+    else if (statusVal === 'Pending') followups = followups.filter(f => f.status === 'Pending');
+    else if (statusVal === 'Completed') classes = classes.filter(c => c.status === 'Completed' || c.status === 'Conducted');
+  }
+
   if (periodVal !== 'ALL') {
     const now = new Date();
     let startDate = new Date();
@@ -3561,50 +3625,45 @@ async function loadReports() {
     classes = classes.filter(c => c.date >= isoStart);
   }
 
-  // Calculated Metrics
-  const activeStudents = students.filter(s => s.status === 'Active').length;
-  const newStudents = students.filter(s => {
-    if (!s.start_date) return true;
-    const d = new Date(s.start_date);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return d >= thirtyDaysAgo;
-  }).length;
+  // Calculate 8 System KPIs
+  const totalStudentsCount = rawStudents.length;
+  const activeStudentsCount = students.filter(s => s.status === 'Active').length;
+  const unassignedStudentsCount = students.filter(s => !s.assigned_ssc_id || s.assigned_ssc_id === 'unassigned').length;
+  const totalSSCsCount = (sscs && sscs.length) || (cachedSSCs && cachedSSCs.length) || 1;
+  const totalFacultyCount = (faculties && faculties.length) || (cachedFaculties && cachedFaculties.length) || 1;
+  const totalClassesCount = classes.length;
+  const conductedClassesCount = classes.filter(c => c.status === 'Completed' || c.status === 'Conducted').length;
+  const pendingFollowupsCount = followups.filter(f => f.status === 'Pending').length;
 
-  const totalClasses = classes.length;
-  const conductedClasses = classes.filter(c => c.status === 'Completed' || c.status === 'Conducted').length;
-  const rescheduledClasses = classes.filter(c => c.status === 'RESCHEDULED' || c.status === 'Rescheduled').length;
-  const assessmentsDone = assessments.filter(a => a.status === 'Completed').length;
-  const pendingFollowups = followups.filter(f => f.status === 'Pending').length;
-  
   const endingPackages = students.filter(s => {
     const remaining = s.remaining_classes !== undefined ? s.remaining_classes : Math.max(0, (s.total_classes || 24) - (s.completed_classes || 0));
     return remaining <= 3 || ['Pending', 'Ending Soon'].includes(s.renewal_status);
   });
 
-  // Top KPI Strip updates
+  // Update 8 Top KPI Cards
+  const elTotStud = document.getElementById('rpt-kpi-total-students');
   const elStud = document.getElementById('rpt-kpi-students');
-  const elNewStud = document.getElementById('rpt-kpi-new-students');
+  const elUnassigned = document.getElementById('rpt-kpi-unassigned-students');
+  const elSSCs = document.getElementById('rpt-kpi-sscs');
+  const elFac = document.getElementById('rpt-kpi-faculty');
   const elCls = document.getElementById('rpt-kpi-classes');
   const elCond = document.getElementById('rpt-kpi-conducted');
-  const elResch = document.getElementById('rpt-kpi-rescheduled');
-  const elAss = document.getElementById('rpt-kpi-assessments');
   const elFu = document.getElementById('rpt-kpi-followups');
-  const elRen = document.getElementById('rpt-kpi-renewals');
 
-  if (elStud) elStud.textContent = activeStudents;
-  if (elNewStud) elNewStud.textContent = newStudents;
-  if (elCls) elCls.textContent = totalClasses;
-  if (elCond) elCond.textContent = conductedClasses;
-  if (elResch) elResch.textContent = rescheduledClasses;
-  if (elAss) elAss.textContent = assessmentsDone;
-  if (elFu) elFu.textContent = pendingFollowups;
-  if (elRen) elRen.textContent = endingPackages.length;
+  if (elTotStud) elTotStud.textContent = totalStudentsCount;
+  if (elStud) elStud.textContent = activeStudentsCount;
+  if (elUnassigned) elUnassigned.textContent = unassignedStudentsCount;
+  if (elSSCs) elSSCs.textContent = totalSSCsCount;
+  if (elFac) elFac.textContent = totalFacultyCount;
+  if (elCls) elCls.textContent = totalClassesCount;
+  if (elCond) elCond.textContent = conductedClassesCount;
+  if (elFu) elFu.textContent = pendingFollowupsCount;
 
   // Render Report Sections
   renderStudentActivityReport(students);
   renderClassOperationsReport(classes);
   renderFacultyPayoutReport(students, classes);
+  renderSSCOperationsReport(sscs.length ? sscs : (cachedSSCs || []), students, followups, classes);
   renderAssessmentsReport(assessments);
   renderFollowupsReport(followups);
   renderPackageRenewalReport(endingPackages);
@@ -3614,7 +3673,12 @@ function renderStudentActivityReport(students) {
   const container = document.getElementById('report-students-stats');
   if (!container) return;
   if (!students || students.length === 0) {
-    container.innerHTML = renderEmptyState({ icon: '🎓', title: 'No Student Data', message: 'No active student records available for reporting.' });
+    container.innerHTML = `
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+        <span>🎓</span>
+        <span><strong>No student data</strong> matching current filter criteria.</span>
+      </div>
+    `;
     return;
   }
 
@@ -3667,7 +3731,12 @@ function renderClassOperationsReport(classes) {
   const container = document.getElementById('report-classes-stats');
   if (!container) return;
   if (!classes || classes.length === 0) {
-    container.innerHTML = renderEmptyState({ icon: '📅', title: 'No Class Records', message: 'No class sessions recorded for this filter period.' });
+    container.innerHTML = `
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+        <span>📅</span>
+        <span><strong>No class sessions recorded</strong> for current filter selections.</span>
+      </div>
+    `;
     return;
   }
 
@@ -3767,10 +3836,9 @@ function renderFacultyPayoutReport(students, classes) {
 
   if (payoutRows.length === 0) {
     container.innerHTML = `
-      <div class="designed-empty-state" style="padding: 20px 16px;">
-        <div style="font-size: 24px; margin-bottom: 4px;">💼</div>
-        <div style="font-size: 13px; font-weight: 700; color: #0f172a;">No Faculty Payment Assignments Found</div>
-        <div style="font-size: 12px; color: #64748b;">Faculty payment rates recorded during student registration will populate here.</div>
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+        <span>💼</span>
+        <span><strong>No faculty payment assignments found</strong> for current filter selections.</span>
       </div>
     `;
     return;
@@ -3822,11 +3890,68 @@ function renderFacultyPayoutReport(students, classes) {
   container.innerHTML = tableHtml;
 }
 
+function renderSSCOperationsReport(sscsList, studentsList, followupsList, classesList) {
+  const container = document.getElementById('report-ssc-stats');
+  if (!container) return;
+
+  if (!sscsList || sscsList.length === 0) {
+    container.innerHTML = `
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+        <span>👥</span>
+        <span><strong>No SSC accounts registered</strong> in the system.</span>
+      </div>
+    `;
+    return;
+  }
+
+  let tableHtml = `
+    <div class="table-wrapper">
+      <table class="data-table" style="font-size: 12px;">
+        <thead>
+          <tr>
+            <th>SSC Name</th>
+            <th>Assigned Students</th>
+            <th>Pending Follow-ups</th>
+            <th>Classes Conducted</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  sscsList.forEach(ssc => {
+    const assignedStudents = (studentsList || []).filter(s => String(s.assigned_ssc_id) === String(ssc.id)).length;
+    const pendingFu = (followupsList || []).filter(f => String(f.assigned_ssc_id) === String(ssc.id) && f.status === 'Pending').length;
+    const condCls = (classesList || []).filter(c => String(c.assigned_ssc_id) === String(ssc.id) && (c.status === 'Completed' || c.status === 'Conducted')).length;
+
+    tableHtml += `
+      <tr>
+        <td><strong>${escapeHTML(ssc.name)}</strong></td>
+        <td><span class="badge badge-info">${assignedStudents} Students</span></td>
+        <td><span class="badge ${pendingFu > 0 ? 'badge-warning' : 'badge-success'}">${pendingFu} Pending</span></td>
+        <td><span class="badge badge-success">${condCls} Conducted</span></td>
+      </tr>
+    `;
+  });
+
+  tableHtml += `
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = tableHtml;
+}
+
 function renderAssessmentsReport(assessments) {
   const container = document.getElementById('report-assessments-stats');
   if (!container) return;
   if (!assessments || assessments.length === 0) {
-    container.innerHTML = renderEmptyState({ icon: '📝', title: 'No Assessments Scheduled', message: 'No academic assessments recorded.' });
+    container.innerHTML = `
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+        <span>📝</span>
+        <span><strong>No assessments recorded</strong> for current filter selections.</span>
+      </div>
+    `;
     return;
   }
   const completed = assessments.filter(a => a.status === 'Completed').length;
@@ -3851,7 +3976,12 @@ function renderFollowupsReport(followups) {
   const container = document.getElementById('report-followups-stats');
   if (!container) return;
   if (!followups || followups.length === 0) {
-    container.innerHTML = renderEmptyState({ icon: '✅', title: 'No Priority Follow-ups', message: 'No active follow-up actions.' });
+    container.innerHTML = `
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+        <span>✅</span>
+        <span><strong>No active follow-ups recorded</strong> for current filter selections.</span>
+      </div>
+    `;
     return;
   }
   const pending = followups.filter(f => f.status === 'Pending').length;
@@ -6553,6 +6683,8 @@ function handleBrandSave(e) {
 
 // EXPOSE ALL UI CONTROLLER FUNCTIONS TO GLOBAL WINDOW OBJECT FOR INLINE HANDLERS
 Object.assign(window, {
+  fetchAPI,
+  loadReports,
   handleLoginSubmit,
   handleLogout,
   switchView,
