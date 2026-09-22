@@ -212,6 +212,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // AUTHENTICATION & SESSION BOOTSTRAP (TAB ISOLATED VIA FIREBASE AUTH)
+let resolveAuthReady;
+const authReadyPromise = new Promise((resolve) => {
+  resolveAuthReady = resolve;
+});
+
 function initAppAuth() {
   console.log('[AUTH DEBUG] Initializing initAppAuth() observer...');
   if (window.location.pathname.startsWith('/session/')) {
@@ -220,6 +225,7 @@ function initAppAuth() {
     if (token) {
       showFacultyWrapupLayout(token);
       hideLoadingSpinner();
+      resolveAuthReady(null);
       return;
     }
   }
@@ -255,6 +261,7 @@ function initAppAuth() {
           console.log('[AUTH DEBUG] Using resolved profile for:', user.email, currentUser);
         }
         console.log('[AUTH DEBUG] User Profile Loaded:', currentUser.name, '| Role:', currentUser.role);
+        resolveAuthReady(currentUser);
         showAppLayout();
       } catch (err) {
         console.error('[AUTH DEBUG] Error loading user profile:', err);
@@ -268,11 +275,13 @@ function initAppAuth() {
           role: isSuperAdmin ? 'SUPER_ADMIN' : (isHead ? 'ACADEMIC_HEAD' : 'SSC')
         };
         console.log('[AUTH DEBUG] Using fallback user profile:', currentUser);
+        resolveAuthReady(currentUser);
         showAppLayout();
       }
     } else {
       console.log('[AUTH DEBUG] No authenticated user detected (user logged out). Showing login view.');
       currentUser = null;
+      resolveAuthReady(null);
       showLoginLayout();
     }
     hideLoadingSpinner();
@@ -444,7 +453,8 @@ function updateMobileBottomNav() {
   }).join('');
 }
 
-function switchView(viewName) {
+async function switchView(viewName) {
+  await authReadyPromise;
   if (!currentUser) return;
 
   const headOnlyViews = ['head-dashboard', 'ssc-management', 'student-allocation', 'unassigned-students'];
@@ -526,7 +536,9 @@ function renderHeaderActionButtons() {
   }
 }
 
-function refreshCurrentView() {
+async function refreshCurrentView() {
+  await authReadyPromise;
+  if (!currentUser) return;
   if (currentView === 'admin') switchAdminTab('overview');
   else if (currentView === 'head-dashboard') loadHeadDashboard();
   else if (currentView === 'ssc-management') loadSSCManagement();
@@ -668,6 +680,14 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
         body: data ? JSON.stringify(data) : null
       });
       return await res.json();
+    }
+
+    // Gate all protected queries with authReadyPromise
+    await authReadyPromise;
+
+    if (!currentUser && !auth.currentUser) {
+      console.warn(`[fetchAPI] Call attempted without authenticated user for endpoint: ${endpoint}`);
+      return null;
     }
 
     // 3. Cloud Firestore Direct Queries
@@ -3088,6 +3108,8 @@ async function loadSSCDashboard() {
 
 // 5. STUDENTS DIRECTORY
 async function loadStudents() {
+  await authReadyPromise;
+
   const query = document.getElementById('students-search-input')?.value.trim() || '';
   const status = document.getElementById('students-status-filter')?.value || '';
   
@@ -3106,7 +3128,23 @@ async function loadStudents() {
   }
 
   const res = await fetchAPI(`/api/students?q=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}`);
-  if (!res || !res.students) return;
+  if (!res || !res.students) {
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10" style="padding: 40px 16px; text-align: center;">
+            <div class="directory-empty-container" style="max-width: 400px; margin: 0 auto; box-shadow: none;">
+              <div class="directory-empty-icon" style="color: #ef4444;">⚠️</div>
+              <div class="directory-empty-title">Unable to load students directory</div>
+              <div class="directory-empty-text">There was an issue retrieving student records.</div>
+              <button class="btn btn-primary" onclick="loadStudents()">Retry</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    return;
+  }
 
   if (!tbody) return;
 
@@ -4575,6 +4613,8 @@ function updateFacultyCapabilitySummary() {
 }
 
 async function loadFacultyDirectory() {
+  await authReadyPromise;
+
   const query = document.getElementById('faculty-search-input')?.value.trim() || '';
   const subject = document.getElementById('faculty-subject-filter')?.value || '';
   const board = document.getElementById('faculty-board-filter')?.value || '';
@@ -4599,6 +4639,10 @@ async function loadFacultyDirectory() {
   try {
     res = await fetchAPI(`/api/faculty?q=${encodeURIComponent(query)}&subject=${encodeURIComponent(subject)}&syllabus=${encodeURIComponent(board)}&grade=${encodeURIComponent(grade)}&status=${encodeURIComponent(status)}`);
   } catch (err) {
+    res = null;
+  }
+
+  if (!res || (!res.faculties && !res.faculty)) {
     if (tbody) {
       tbody.innerHTML = `
         <tr>
@@ -4615,8 +4659,6 @@ async function loadFacultyDirectory() {
     }
     return;
   }
-
-  if (!res || (!res.faculties && !res.faculty)) return;
 
   const facultyList = res.faculties || res.faculty || [];
   cachedFaculty = facultyList;
