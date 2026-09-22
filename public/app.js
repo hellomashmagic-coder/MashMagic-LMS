@@ -1485,7 +1485,7 @@ async function loadWeeklyMasterGrid() {
           else if (subLower.includes('social')) themeClass = 'tt-sub-social';
 
           html += `
-            <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal(${w.id}, '${escapeHTML(stName)}', '${escapeHTML(subj)}', ${w.facultyId || w.faculty_id || 1}, '${w.dayOfWeek || w.day_of_week}', '${w.startTime || w.start_time}', '${w.effectiveFrom || w.effective_from || ''}')">
+            <div class="timetable-class-block ${themeClass}" onclick="openEditWeeklySlotModal('${w.id}', '${escapeHTML(stName)}', '${escapeHTML(subj)}', '${w.facultyId || w.faculty_id || 1}', '${w.dayOfWeek || w.day_of_week}', '${w.startTime || w.start_time}', '${w.effectiveFrom || w.effective_from || ''}')">
               <div class="tt-student">${escapeHTML(stName)}</div>
               <div class="tt-meta"><strong>${escapeHTML(subj)}</strong> • ${escapeHTML(facultyShort)}${durationStr}</div>
             </div>
@@ -4670,7 +4670,7 @@ async function loadFacultyDirectory() {
     const gradesFormatted = formatGradesText(f.grades);
 
     html += `
-      <tr class="clickable-row" onclick="openFacultyDrawer(${f.id})">
+      <tr class="clickable-row" onclick="openFacultyDrawer('${f.id}')">
         <td>
           <div style="font-size: 11px; font-weight: 800; color: var(--primary); font-family: monospace;">${escapeHTML(f.faculty_code || 'FAC-2026-XXXX')}</div>
           <strong style="color: #0f172a; font-size: 14px;">${escapeHTML(f.name)}</strong>
@@ -4689,8 +4689,8 @@ async function loadFacultyDirectory() {
         <td>${statusBadge}</td>
         <td>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openFacultyDrawer(${f.id})">View</button>
-            ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openEditFacultyModal(${f.id})">Edit</button>` : ''}
+            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openFacultyDrawer('${f.id}')">View</button>
+            ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openEditFacultyModal('${f.id}')">Edit</button>` : ''}
           </div>
         </td>
       </tr>
@@ -4751,7 +4751,7 @@ async function openFacultyDrawer(facultyId) {
     <div class="profile-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h4 style="margin:0;">Faculty Information</h4>
-        ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="openEditFacultyModal(${f.id})">Edit Profile</button>` : ''}
+        ${canEdit ? `<button class="btn btn-sm btn-primary" onclick="openEditFacultyModal('${f.id}')">Edit Profile</button>` : ''}
       </div>
       <div class="info-grid">
         <div class="info-item"><span class="info-label">Faculty Code</span><span class="info-value" style="font-family:monospace; font-weight:800; color:var(--primary);">${escapeHTML(f.faculty_code || 'FAC-2026-XXXX')}</span></div>
@@ -6338,7 +6338,7 @@ async function loadAdminFaculties() {
           <td><code>${escapeHTML(f.wrapupToken || f.wrapup_token || 'N/A')}</code></td>
           <td>${statusBadge}</td>
           <td style="text-align: right;">
-            <button class="btn btn-sm btn-outline" onclick="openFacultyDrawer(${d.id})">View Profile</button>
+            <button class="btn btn-sm btn-outline" onclick="openFacultyDrawer('${d.id}')">View Profile</button>
           </td>
         </tr>
       `;
