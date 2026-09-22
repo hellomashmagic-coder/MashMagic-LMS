@@ -1296,22 +1296,29 @@
           <!-- Month Navigator & Top Metric Summary Cards -->
           <div class="card" style="padding: 18px 20px; margin-bottom: 20px; background: #ffffff; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-              <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <button class="btn btn-sm btn-outline" onclick="navigateMonthlyCalendarMonth(-1)">‹ Previous Month</button>
                 <button class="btn btn-sm btn-outline" onclick="navigateMonthlyCalendarMonth(0)">Today</button>
                 <span id="mc-month-heading" style="font-size: 1.25rem; font-weight: 800; color: var(--primary); min-width: 170px; text-align: center;">September 2026</span>
                 <button class="btn btn-sm btn-outline" onclick="navigateMonthlyCalendarMonth(1)">Next Month ›</button>
               </div>
 
-              <!-- Status Legend -->
-              <div style="display: flex; align-items: center; gap: 12px; font-size: 0.8rem; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
-                <span style="font-weight: 700; color: #475569;">STATUS:</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span> Scheduled</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span> Conducted</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9333ea;"></span> Rescheduled</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #d97706;"></span> Postponed</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc2626;"></span> Cancelled</span>
-                <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #64748b;"></span> No Show</span>
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <!-- Status Legend -->
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 0.78rem; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-wrap: wrap;">
+                  <span style="font-weight: 700; color: #475569;">STATUS:</span>
+                  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #16a34a;"></span> Scheduled</span>
+                  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span> Conducted</span>
+                  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9333ea;"></span> Rescheduled</span>
+                  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #d97706;"></span> Postponed</span>
+                  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc2626;"></span> Cancelled</span>
+                  <span style="display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #64748b;"></span> No Show</span>
+                </div>
+
+                <!-- Schedule Class Button -->
+                <button class="btn btn-sm btn-primary" onclick="openScheduleClassModal()" style="display: flex; align-items: center; gap: 6px; font-weight: 700; padding: 7px 14px;">
+                  <span>+ Schedule Class</span>
+                </button>
               </div>
             </div>
 
@@ -1388,6 +1395,15 @@
                 </select>
               </div>
             </div>
+          </div>
+
+          <!-- Empty State Notice (shown when 0 classes match filter) -->
+          <div id="mc-empty-notice" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #1e40af; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>📅</span>
+              <span><strong>No classes found</strong> matching your current filter criteria for this month.</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="openScheduleClassModal()" style="font-size: 0.78rem; padding: 4px 12px; background: #ffffff; font-weight: 700;">+ Schedule Class</button>
           </div>
 
           <!-- Main Full-Month Calendar Matrix Grid -->
@@ -2383,24 +2399,50 @@
 
   <!-- 3. Reassign Student Modal (Academic Head Only) -->
   <div class="modal-overlay" id="modal-reassign-student">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Reassign Student SSC</h3>
-        <button class="modal-close-btn" onclick="closeModal('modal-reassign-student')">✕</button>
+    <div class="modal" style="max-width: 640px; border-radius: 12px; border-top: 4px solid var(--primary); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);">
+      <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h3 id="re-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">Assign Student to SSC</h3>
+          <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748b;">Choose the Student Success Coordinator responsible for this student's ongoing support.</p>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeModal('modal-reassign-student')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 4px;">✕</button>
       </div>
       <form id="form-reassign-student" onsubmit="handleReassignStudentSubmit(event)">
-        <input type="hidden" id="re-student-id">
-        <div class="class-summary-box" id="re-summary"></div>
-        <div class="form-group margin-top-md">
-          <label>Select New SSC *</label>
-          <select id="re-new-ssc-id" class="form-control" required></select>
+        <div class="modal-body" style="padding: 20px 24px;">
+          <input type="hidden" id="re-student-id">
+
+          <!-- Student Context Card -->
+          <div id="re-summary" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+            <!-- Populated dynamically in JS -->
+          </div>
+
+          <!-- Select SSC Field -->
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label style="font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 6px; display: block;">Select New SSC *</label>
+            <select id="re-new-ssc-id" class="form-control" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.95rem;" onchange="handleSSCSelectChange(this.value)">
+              <option value="">Select SSC...</option>
+            </select>
+          </div>
+
+          <!-- Dynamic SSC Profile Preview Card -->
+          <div id="re-ssc-preview" style="display: none; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;">
+            <!-- Populated dynamically on select in JS -->
+          </div>
+
+          <!-- Transfer Impact Information Box -->
+          <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 16px; font-size: 0.85rem; color: #334155; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start;">
+            <span style="font-size: 1.1rem; line-height: 1;">ℹ️</span>
+            <div>
+              <strong style="color: #0f172a;">Transfer Impact Guarantee</strong>: Historical timetables, classes, assessments, and activity logs will remain safely intact. The new SSC will immediately gain oversight of this student's academic progress.
+            </div>
+          </div>
         </div>
-        <div class="warning-box">
-          ⚠️ <strong>Confirmation Required</strong>: Are you sure you want to reassign this student? Historical timetables, classes, assessments, and activity logs will remain safely intact.
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline" onclick="closeModal('modal-reassign-student')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Reassign Student</button>
+
+        <div class="modal-footer" style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-reassign-student')" style="padding: 9px 18px; font-weight: 600;">Cancel</button>
+          <button type="submit" id="re-submit-btn" class="btn btn-primary" style="padding: 9px 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            Assign to SSC
+          </button>
         </div>
       </form>
     </div>

@@ -994,7 +994,7 @@ async function loadSSCListForDropdowns() {
       if (elem) {
         let html = id === 'allocation-ssc-filter' ? '<option value="">All SSCs</option><option value="unassigned">Unassigned Only</option>' : '<option value="">Select SSC...</option>';
         res.sscs.forEach(s => {
-          html += `<option value="${s.id}">${escapeHTML(s.name)} (${s.active_students} active students)</option>`;
+          html += `<option value="${s.id}">${escapeHTML(s.name)} (${s.active_students || 0} active students)</option>`;
         });
         elem.innerHTML = html;
       }
@@ -4793,26 +4793,153 @@ async function handleFacultyFormSubmit(e) {
   }
 }
 
-function openReassignStudentModal(studentId, studentName, currentSSC) {
-  document.getElementById('re-student-id').value = studentId;
-  document.getElementById('re-summary').innerHTML = `
-    Student: <strong>${studentName}</strong><br>Currently Assigned SSC: <strong>${currentSSC}</strong>
-  `;
+async function openReassignStudentModal(studentId, studentName, currentSSC) {
+  const hiddenInput = document.getElementById('re-student-id');
+  if (hiddenInput) hiddenInput.value = studentId;
+
+  const isUnassigned = !currentSSC || currentSSC === 'Unassigned' || currentSSC === 'Awaiting Assignment';
+  
+  // Dynamic Title & Submit button text
+  const titleEl = document.getElementById('re-modal-title');
+  if (titleEl) titleEl.textContent = isUnassigned ? 'Assign Student to SSC' : 'Reassign Student SSC';
+  
+  const submitBtn = document.getElementById('re-submit-btn');
+  if (submitBtn) submitBtn.textContent = isUnassigned ? 'Assign to SSC' : 'Reassign to SSC';
+
+  // Ensure SSC dropdown is populated
+  if (!cachedSSCs || cachedSSCs.length === 0) {
+    await loadSSCListForDropdowns();
+  } else {
+    const selectElem = document.getElementById('re-new-ssc-id');
+    if (selectElem && selectElem.options.length <= 1) {
+      let html = '<option value="">Select SSC...</option>';
+      cachedSSCs.forEach(s => {
+        html += `<option value="${s.id}">${escapeHTML(s.name)} (${s.active_students || 0} active students)</option>`;
+      });
+      selectElem.innerHTML = html;
+    }
+  }
+
+  // Reset dropdown and preview
+  const selectElem = document.getElementById('re-new-ssc-id');
+  if (selectElem) selectElem.value = '';
+  handleSSCSelectChange('');
+
+  // Find full student details if available
+  let studentDetail = (cachedStudents || []).find(s => String(s.id) === String(studentId));
+  if (!studentDetail) {
+    try {
+      const res = await fetchAPI(`/api/students/${studentId}`);
+      if (res && res.student) studentDetail = res.student;
+    } catch (e) {
+      console.warn('Failed to fetch student info:', e);
+    }
+  }
+
+  const sName = studentDetail?.name || studentName || 'Student';
+  const regNo = studentDetail?.register_no || `MM-2026-${String(studentId).padStart(4, '0')}`;
+  const grade = studentDetail?.grade || 'Grade 10';
+  const program = studentDetail?.program || studentDetail?.course || 'Standard Academic Program';
+  const board = studentDetail?.board || 'CBSE';
+  const parentName = studentDetail?.parent_name || studentDetail?.guardian_name || 'N/A';
+
+  const statusBadge = isUnassigned
+    ? `<span style="background: #fef3c7; color: #b45309; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">⚠️ Awaiting SSC Assignment</span>`
+    : `<span style="background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">👤 Currently Managed by: <strong style="margin-left: 2px;">${escapeHTML(currentSSC)}</strong></span>`;
+
+  const summaryEl = document.getElementById('re-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+        <div>
+          <div style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">${escapeHTML(sName)}</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">Register No: <span style="font-weight: 700; color: #334155;">${escapeHTML(regNo)}</span></div>
+        </div>
+        ${statusBadge}
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; font-size: 0.82rem; background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+        <div><span style="color: #64748b;">Grade:</span> <strong style="color: #0f172a;">${escapeHTML(grade)}</strong></div>
+        <div><span style="color: #64748b;">Board:</span> <strong style="color: #0f172a;">${escapeHTML(board)}</strong></div>
+        <div><span style="color: #64748b;">Program:</span> <strong style="color: #0f172a;">${escapeHTML(program)}</strong></div>
+        <div><span style="color: #64748b;">Parent:</span> <strong style="color: #0f172a;">${escapeHTML(parentName)}</strong></div>
+      </div>
+    `;
+  }
+
   document.getElementById('modal-reassign-student')?.classList.add('active');
+}
+
+function handleSSCSelectChange(sscId) {
+  const previewContainer = document.getElementById('re-ssc-preview');
+  if (!previewContainer) return;
+
+  if (!sscId) {
+    previewContainer.style.display = 'none';
+    previewContainer.innerHTML = '';
+    return;
+  }
+
+  const ssc = (cachedSSCs || []).find(s => String(s.id) === String(sscId));
+  if (ssc) {
+    previewContainer.style.display = 'block';
+    previewContainer.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--primary, #1e3a8a); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; flex-shrink: 0;">
+          ${(ssc.name || 'SSC').charAt(0)}
+        </div>
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <strong style="font-size: 0.95rem; color: #0f172a;">${escapeHTML(ssc.name)}</strong>
+            <span style="background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px;">
+              ${ssc.active_students || 0} Active Students
+            </span>
+          </div>
+          <div style="font-size: 0.8rem; color: #475569; margin-top: 3px;">
+            📧 ${escapeHTML(ssc.email || ssc.username || 'ssc@mashmagic.com')} • 📱 ${escapeHTML(ssc.phone || '+91 98765 43210')}
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    previewContainer.style.display = 'none';
+  }
 }
 
 async function handleReassignStudentSubmit(e) {
   e.preventDefault();
+  const submitBtn = document.getElementById('re-submit-btn');
+  const oldBtnText = submitBtn ? submitBtn.textContent : 'Assign to SSC';
+
   const data = {
     student_id: document.getElementById('re-student-id').value,
     new_ssc_id: document.getElementById('re-new-ssc-id').value
   };
 
-  const res = await fetchAPI('/api/students/reassign', 'POST', data);
-  if (res && res.success) {
-    closeModal('modal-reassign-student');
-    alert(`Student reassigned successfully from ${res.old_ssc} to ${res.new_ssc}. All past timetables, classes, and logs remain intact.`);
-    refreshCurrentView();
+  if (!data.new_ssc_id) {
+    alert('Please select an SSC');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `⏳ Processing...`;
+  }
+
+  try {
+    const res = await fetchAPI('/api/students/reassign', 'POST', data);
+    if (res && res.success) {
+      closeModal('modal-reassign-student');
+      alert(`Student assigned successfully to ${res.new_ssc || 'new SSC'}. All past timetables, classes, and logs remain intact.`);
+      refreshCurrentView();
+    }
+  } catch (err) {
+    console.error('Reassign failed:', err);
+    alert('Failed to assign student. Please try again.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = oldBtnText;
+    }
   }
 }
 
@@ -5575,8 +5702,15 @@ async function renderMonthlyCalendarPage() {
     facultySelect.innerHTML = facHtml;
   }
 
-  // 4. Render 7-Column Full Month Calendar Grid
-  renderMonthlyGrid(res.year, res.month, res.classes || []);
+  // 4. Toggle Empty State Notice
+  const emptyNotice = document.getElementById('mc-empty-notice');
+  const classArray = Array.isArray(res.classes) ? res.classes : (typeof res.classes === 'object' && res.classes ? Object.values(res.classes) : []);
+  if (emptyNotice) {
+    emptyNotice.style.display = classArray.length === 0 ? 'flex' : 'none';
+  }
+
+  // 5. Render 7-Column Full Month Calendar Grid
+  renderMonthlyGrid(res.year, res.month, classArray);
 }
 
 function renderMonthlyGrid(year, month, classesList) {
@@ -6484,6 +6618,7 @@ Object.assign(window, {
   addSubjectSlotRow,
   removeSubjectSlotRow,
   openReassignStudentModal,
+  handleSSCSelectChange,
   handleReassignStudentSubmit,
   openUpdateRenewalStatusModal,
   submitRenewalStatusUpdate,
