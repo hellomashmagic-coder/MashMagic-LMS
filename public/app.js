@@ -946,7 +946,11 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
         students: studentStats,
         classes: classStats,
         assessments: assessmentStats,
-        followups: followupStats
+        followups: followupStats,
+        studentsList: students,
+        classesList: classes,
+        assessmentsList: assessments,
+        followupsList: followups
       };
     }
 
@@ -2882,27 +2886,91 @@ async function loadUnassignedStudents() {
   if (!res || !res.students) return;
 
   const tbody = document.getElementById('unassigned-table-body');
+  const countBadge = document.getElementById('unassigned-badge-count');
+  const tableCount = document.getElementById('unassigned-table-count');
+
+  if (countBadge) countBadge.innerText = `${res.students.length} Awaiting Allocation`;
+  if (tableCount) tableCount.innerText = `${res.students.length} student(s) pending SSC assignment`;
+
   if (res.students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6">${renderEmptyState({ icon: '✨', title: 'All Students Assigned', message: 'All enrolled students are currently assigned to an SSC.' })}</td></tr>`;
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7">${renderEmptyState({ icon: '✨', title: 'All students are assigned', message: 'Every active student currently has an SSC.' })}</td></tr>`;
+    }
+    renderEnrollmentChecklist(null);
     return;
   }
 
   let html = '';
   res.students.forEach(s => {
+    const regNo = s.register_number || s.register_no || `MM-2026-${s.id}`;
+    const statusBadge = renderStatusBadge(s.status || 'Active');
     html += `
       <tr>
-        <td><strong>${escapeHTML(s.name)}</strong></td>
-        <td>${escapeHTML(s.grade)}</td>
-        <td>${escapeHTML(s.program)}</td>
-        <td>${escapeHTML(s.parent_name)}</td>
-        <td>${escapeHTML(s.parent_phone)}</td>
         <td>
-          <button class="btn btn-sm btn-primary" onclick="openReassignStudentModal(${s.id}, '${escapeHTML(s.name)}', 'Unassigned')">Assign SSC</button>
+          <div style="font-weight:700; color:#0f172a;">${escapeHTML(s.name)}</div>
+          <div style="font-size:11px; color:var(--primary); font-family:monospace; font-weight:700;">${escapeHTML(regNo)}</div>
+        </td>
+        <td><span class="badge badge-outline" style="font-size:12px;">${escapeHTML(s.grade)}</span></td>
+        <td><span style="font-weight:600; color:#334155;">${escapeHTML(s.program)}</span></td>
+        <td>${escapeHTML(s.parent_name || 'N/A')}</td>
+        <td><a href="tel:${escapeHTML(s.parent_phone)}" style="color:var(--primary); font-weight:700;">${escapeHTML(s.parent_phone || 'N/A')}</a></td>
+        <td>${statusBadge}</td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="openReassignStudentModal('${s.id}', '${escapeHTML(s.name)}', 'Unassigned')">Assign SSC</button>
         </td>
       </tr>
     `;
   });
-  tbody.innerHTML = html;
+  if (tbody) tbody.innerHTML = html;
+  renderEnrollmentChecklist(res.students[0]);
+}
+
+function renderEnrollmentChecklist(student) {
+  const container = document.getElementById('enrollment-checklist-container');
+  if (!container) return;
+
+  const items = [
+    { label: '1. Student profile completed', done: !!(student && student.name && student.grade) },
+    { label: '2. Parent contact verified', done: !!(student && student.parent_phone) },
+    { label: '3. Program / package confirmed', done: !!(student && student.program) },
+    { label: '4. Subject requirements confirmed', done: !!(student && student.subjects && student.subjects.length > 0) },
+    { label: '5. Faculty assigned for each subject', done: !!(student && (student.faculty_id || (student.subjects && student.subjects.some(s => s.faculty_id || s.facultyId)))) },
+    { label: '6. Faculty payment/hour recorded', done: !!(student && ((student.facultyAssignments && student.facultyAssignments.some(f => f.paymentPerHour > 0)) || student.payment_per_hour > 0)) },
+    { label: '7. SSC assigned', done: !!(student && student.assigned_ssc_id && student.assigned_ssc_id !== 'unassigned') },
+    { label: '8. WhatsApp parent/student communication setup', done: !!(student && student.parent_phone) },
+    { label: '9. Assessment requirement identified', done: !!(student && student.subjects && student.subjects.length > 0) },
+    { label: '10. Timetable confirmed', done: !!(student && student.weekly_timetable && student.weekly_timetable.length > 0) },
+    { label: '11. First class scheduled', done: false },
+    { label: '12. Parent onboarding / orientation completed', done: false }
+  ];
+
+  let html = '';
+  if (student) {
+    html += `
+      <div style="background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 12px; margin-bottom: 4px;">
+        Target Queue: <strong>${escapeHTML(student.name)}</strong> (${escapeHTML(student.grade)})
+      </div>
+    `;
+  }
+  items.forEach(item => {
+    if (item.done) {
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+          <span style="font-size: 12px; font-weight: 600; color: #166534;">${escapeHTML(item.label)}</span>
+          <span class="badge badge-success" style="font-size: 11px; font-weight: 800; padding: 2px 8px;">✓ Completed</span>
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+          <span style="font-size: 12px; font-weight: 500; color: #475569;">${escapeHTML(item.label)}</span>
+          <span class="badge badge-outline" style="font-size: 11px; font-weight: 700; color: #64748b; padding: 2px 8px;">○ Pending</span>
+        </div>
+      `;
+    }
+  });
+
+  container.innerHTML = html;
 }
 
 // 4. SSC DASHBOARD
@@ -3442,63 +3510,431 @@ async function completeFollowup(fuId) {
 
 // 12. REPORTS MODULE
 async function loadReports() {
+  // Populate SSC filter if not populated
+  const sscSelect = document.getElementById('rpt-filter-ssc');
+  if (sscSelect && sscSelect.options.length <= 1) {
+    const sscRes = await fetchAPI('/api/users/sscs');
+    if (sscRes && sscRes.sscs) {
+      let optionsHtml = '<option value="">All SSCs</option>';
+      sscRes.sscs.forEach(s => {
+        optionsHtml += `<option value="${s.id}">${escapeHTML(s.name)}</option>`;
+      });
+      sscSelect.innerHTML = optionsHtml;
+    }
+  }
+
+  const periodVal = document.getElementById('rpt-filter-period')?.value || 'ALL';
+  const sscVal = document.getElementById('rpt-filter-ssc')?.value || '';
+
   const res = await fetchAPI('/api/reports');
   if (!res) return;
 
-  const totalStudents = Object.values(res.students || {}).reduce((a, b) => a + b, 0);
-  const totalClasses = Object.values(res.classes || {}).reduce((a, b) => a + b, 0);
-  const conductedClasses = (res.classes?.Completed || 0) + (res.classes?.Conducted || 0);
-  const rescheduledClasses = res.classes?.RESCHEDULED || res.classes?.Rescheduled || 0;
-  const totalAssessments = Object.values(res.assessments || {}).reduce((a, b) => a + b, 0);
-  const totalFollowups = Object.values(res.followups || {}).reduce((a, b) => a + b, 0);
+  // Raw items from API/Firestore
+  let students = res.studentsList || [];
+  let classes = res.classesList || [];
+  let assessments = res.assessmentsList || [];
+  let followups = res.followupsList || [];
 
+  // Filter by SSC if selected
+  if (sscVal) {
+    students = students.filter(s => String(s.assigned_ssc_id) === String(sscVal));
+    classes = classes.filter(c => String(c.assigned_ssc_id) === String(sscVal));
+    assessments = assessments.filter(a => String(a.assigned_ssc_id) === String(sscVal));
+    followups = followups.filter(f => String(f.assigned_ssc_id) === String(sscVal));
+  }
+
+  // Filter by Period if date filter applied
+  if (periodVal !== 'ALL') {
+    const now = new Date();
+    let startDate = new Date();
+    if (periodVal === 'TODAY') {
+      startDate.setHours(0,0,0,0);
+    } else if (periodVal === 'THIS_WEEK') {
+      const day = now.getDay();
+      startDate.setDate(now.getDate() - day);
+      startDate.setHours(0,0,0,0);
+    } else if (periodVal === 'THIS_MONTH') {
+      startDate.setDate(1);
+      startDate.setHours(0,0,0,0);
+    }
+    const isoStart = startDate.toISOString().split('T')[0];
+    classes = classes.filter(c => c.date >= isoStart);
+  }
+
+  // Calculated Metrics
+  const activeStudents = students.filter(s => s.status === 'Active').length;
+  const newStudents = students.filter(s => {
+    if (!s.start_date) return true;
+    const d = new Date(s.start_date);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return d >= thirtyDaysAgo;
+  }).length;
+
+  const totalClasses = classes.length;
+  const conductedClasses = classes.filter(c => c.status === 'Completed' || c.status === 'Conducted').length;
+  const rescheduledClasses = classes.filter(c => c.status === 'RESCHEDULED' || c.status === 'Rescheduled').length;
+  const assessmentsDone = assessments.filter(a => a.status === 'Completed').length;
+  const pendingFollowups = followups.filter(f => f.status === 'Pending').length;
+  
+  const endingPackages = students.filter(s => {
+    const remaining = s.remaining_classes !== undefined ? s.remaining_classes : Math.max(0, (s.total_classes || 24) - (s.completed_classes || 0));
+    return remaining <= 3 || ['Pending', 'Ending Soon'].includes(s.renewal_status);
+  });
+
+  // Top KPI Strip updates
   const elStud = document.getElementById('rpt-kpi-students');
+  const elNewStud = document.getElementById('rpt-kpi-new-students');
   const elCls = document.getElementById('rpt-kpi-classes');
   const elCond = document.getElementById('rpt-kpi-conducted');
   const elResch = document.getElementById('rpt-kpi-rescheduled');
   const elAss = document.getElementById('rpt-kpi-assessments');
   const elFu = document.getElementById('rpt-kpi-followups');
+  const elRen = document.getElementById('rpt-kpi-renewals');
 
-  if (elStud) elStud.textContent = totalStudents;
+  if (elStud) elStud.textContent = activeStudents;
+  if (elNewStud) elNewStud.textContent = newStudents;
   if (elCls) elCls.textContent = totalClasses;
   if (elCond) elCond.textContent = conductedClasses;
   if (elResch) elResch.textContent = rescheduledClasses;
-  if (elAss) elAss.textContent = totalAssessments;
-  if (elFu) elFu.textContent = totalFollowups;
+  if (elAss) elAss.textContent = assessmentsDone;
+  if (elFu) elFu.textContent = pendingFollowups;
+  if (elRen) elRen.textContent = endingPackages.length;
 
-  const containerStud = document.getElementById('report-students-stats');
-  const containerCls = document.getElementById('report-classes-stats');
-  const containerAss = document.getElementById('report-assessments-stats');
-  const containerFu = document.getElementById('report-followups-stats');
-
-  if (containerStud) containerStud.innerHTML = renderReportList(res.students, 'Student Activity');
-  if (containerCls) containerCls.innerHTML = renderReportList(res.classes, 'Class Operations');
-  if (containerAss) containerAss.innerHTML = renderReportList(res.assessments, 'Assessment Performance');
-  if (containerFu) containerFu.innerHTML = renderReportList(res.followups, 'SSC Follow-up');
+  // Render Report Sections
+  renderStudentActivityReport(students);
+  renderClassOperationsReport(classes);
+  renderFacultyPayoutReport(students, classes);
+  renderAssessmentsReport(assessments);
+  renderFollowupsReport(followups);
+  renderPackageRenewalReport(endingPackages);
 }
 
-function renderReportList(obj, categoryTitle) {
-  if (!obj || Object.keys(obj).length === 0) {
-    return `
-      <div class="designed-empty-state" style="padding: 24px 16px; border: none; background: transparent;">
-        <div style="font-size: 28px; margin-bottom: 6px; opacity: 0.7;">📊</div>
-        <div style="font-size: 14px; font-weight: 700; color: var(--text-main, #0f172a);">No ${escapeHTML(categoryTitle)} metrics recorded</div>
-        <div style="font-size: 12px; color: var(--text-muted, #64748b); margin-top: 2px;">Operational metrics will populate here as live activities occur.</div>
+function renderStudentActivityReport(students) {
+  const container = document.getElementById('report-students-stats');
+  if (!container) return;
+  if (!students || students.length === 0) {
+    container.innerHTML = renderEmptyState({ icon: '🎓', title: 'No Student Data', message: 'No active student records available for reporting.' });
+    return;
+  }
+
+  const activeCount = students.filter(s => s.status === 'Active').length;
+  const unassignedCount = students.filter(s => !s.assigned_ssc_id || s.assigned_ssc_id === 'unassigned').length;
+
+  const gradeCounts = {};
+  students.forEach(s => { const g = s.grade || 'Unspecified'; gradeCounts[g] = (gradeCounts[g] || 0) + 1; });
+
+  const programCounts = {};
+  students.forEach(s => { const p = s.program || 'Standard Academic'; programCounts[p] = (programCounts[p] || 0) + 1; });
+
+  let html = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+      <div style="background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+        <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Active Students</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #0f172a;">${activeCount}</div>
+      </div>
+      <div style="background: #fff7ed; padding: 10px 12px; border-radius: 6px; border: 1px solid #fed7aa;">
+        <span style="font-size: 11px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Unassigned Students</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #7c2d12;">${unassignedCount}</div>
+      </div>
+    </div>
+    
+    <div style="font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 6px;">Program Distribution</div>
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+  `;
+  for (const [p, cnt] of Object.entries(programCounts)) {
+    html += `
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+        <span style="color: #334155; font-weight: 600;">${escapeHTML(p)}</span>
+        <span class="badge badge-info" style="font-weight: 800;">${cnt}</span>
       </div>
     `;
   }
-  let html = '<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">';
-  for (const [k, v] of Object.entries(obj)) {
-    const formattedKey = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    html += `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
-        <span style="font-size: 13px; font-weight: 600; color: #334155;">${escapeHTML(formattedKey)}</span>
-        <span class="badge badge-info" style="font-size: 14px; font-weight: 800; padding: 4px 10px; background: #e0e7ff; color: #3730a3; border-radius: 12px;">${v}</span>
-      </div>
-    `;
+  html += `
+    </div>
+    <div style="font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 6px;">Grade Level Distribution</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+  `;
+  for (const [g, cnt] of Object.entries(gradeCounts)) {
+    html += `<span class="badge badge-outline" style="font-size: 11px;">${escapeHTML(g)}: <strong>${cnt}</strong></span>`;
   }
   html += '</div>';
-  return html;
+
+  container.innerHTML = html;
+}
+
+function renderClassOperationsReport(classes) {
+  const container = document.getElementById('report-classes-stats');
+  if (!container) return;
+  if (!classes || classes.length === 0) {
+    container.innerHTML = renderEmptyState({ icon: '📅', title: 'No Class Records', message: 'No class sessions recorded for this filter period.' });
+    return;
+  }
+
+  const conducted = classes.filter(c => c.status === 'Completed' || c.status === 'Conducted').length;
+  const scheduled = classes.filter(c => c.status === 'Scheduled').length;
+  const rescheduled = classes.filter(c => c.status === 'RESCHEDULED' || c.status === 'Rescheduled').length;
+  const cancelled = classes.filter(c => c.status === 'CANCELLED' || c.status === 'Cancelled' || c.status === 'POSTPONED').length;
+  const wrapupPending = classes.filter(c => c.wrapup_status === 'Pending').length;
+  const wrapupVerified = classes.filter(c => c.wrapup_status === 'VERIFIED' || c.wrapup_status === 'Submitted').length;
+
+  const deliveryRate = classes.length > 0 ? Math.round((conducted / classes.length) * 100) : 0;
+
+  let html = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+      <div style="background: #f0fdf4; padding: 10px 12px; border-radius: 6px; border: 1px solid #bbf7d0;">
+        <span style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase;">Delivery Completion Rate</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #14532d;">${deliveryRate}%</div>
+      </div>
+      <div style="background: #faf5ff; padding: 10px 12px; border-radius: 6px; border: 1px solid #e9d5ff;">
+        <span style="font-size: 11px; font-weight: 700; color: #7e22ce; text-transform: uppercase;">Wrap-ups Verified</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #581c87;">${wrapupVerified}</div>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0;">
+        <span>Conducted Sessions</span><span class="badge badge-success">${conducted}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0;">
+        <span>Upcoming / Scheduled</span><span class="badge badge-primary">${scheduled}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0;">
+        <span>Rescheduled Sessions</span><span class="badge badge-warning">${rescheduled}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0;">
+        <span>Cancelled / Postponed</span><span class="badge badge-danger">${cancelled}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0;">
+        <span>Wrap-ups Pending</span><span class="badge badge-outline">${wrapupPending}</span>
+      </div>
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+function renderFacultyPayoutReport(students, classes) {
+  const container = document.getElementById('report-faculty-payout-stats');
+  if (!container) return;
+
+  const payoutRows = [];
+
+  students.forEach(s => {
+    const assignments = s.facultyAssignments || [];
+    if (assignments.length > 0) {
+      assignments.forEach(fa => {
+        const facName = fa.facultyName || s.primary_faculty_name || 'Faculty';
+        const sub = fa.subject || 'Academic';
+        const rate = fa.paymentPerHour || s.payment_per_hour || 500;
+        
+        const conductedCount = classes.filter(c => 
+          String(c.student_id) === String(s.id) && 
+          (c.status === 'Completed' || c.status === 'Conducted') &&
+          (!c.subject || c.subject.toLowerCase() === sub.toLowerCase())
+        ).length;
+
+        const totalHours = conductedCount;
+        const estimatedPayable = totalHours * rate;
+
+        payoutRows.push({
+          facultyName: facName,
+          studentName: s.name,
+          subject: sub,
+          paymentRate: rate,
+          conductedCount: conductedCount,
+          totalHours: totalHours,
+          estimatedPayable: estimatedPayable
+        });
+      });
+    } else if (s.primary_faculty_name) {
+      const facName = s.primary_faculty_name;
+      const sub = (s.subjects && s.subjects[0]?.subject) || 'Academic';
+      const rate = s.payment_per_hour || 500;
+      const conductedCount = classes.filter(c => String(c.student_id) === String(s.id) && (c.status === 'Completed' || c.status === 'Conducted')).length;
+      const totalHours = conductedCount;
+      const estimatedPayable = totalHours * rate;
+
+      payoutRows.push({
+        facultyName: facName,
+        studentName: s.name,
+        subject: sub,
+        paymentRate: rate,
+        conductedCount: conductedCount,
+        totalHours: totalHours,
+        estimatedPayable: estimatedPayable
+      });
+    }
+  });
+
+  if (payoutRows.length === 0) {
+    container.innerHTML = `
+      <div class="designed-empty-state" style="padding: 20px 16px;">
+        <div style="font-size: 24px; margin-bottom: 4px;">💼</div>
+        <div style="font-size: 13px; font-weight: 700; color: #0f172a;">No Faculty Payment Assignments Found</div>
+        <div style="font-size: 12px; color: #64748b;">Faculty payment rates recorded during student registration will populate here.</div>
+      </div>
+    `;
+    return;
+  }
+
+  let totalPayout = 0;
+  let tableHtml = `
+    <div class="table-wrapper">
+      <table class="data-table" style="font-size: 12px;">
+        <thead>
+          <tr>
+            <th>Faculty</th>
+            <th>Student</th>
+            <th>Subject</th>
+            <th>Payment / Hour</th>
+            <th>Classes Conducted</th>
+            <th>Total Hours</th>
+            <th>Estimated Payable</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  payoutRows.forEach(row => {
+    totalPayout += row.estimatedPayable;
+    tableHtml += `
+      <tr>
+        <td><strong>${escapeHTML(row.facultyName)}</strong></td>
+        <td>${escapeHTML(row.studentName)}</td>
+        <td><span class="badge badge-outline" style="font-size: 11px;">${escapeHTML(row.subject)}</span></td>
+        <td>₹${row.paymentRate} / hr</td>
+        <td style="text-align: center; font-weight: 700;">${row.conductedCount}</td>
+        <td style="text-align: center;">${row.totalHours} hrs</td>
+        <td><strong style="color: #166534;">₹${row.estimatedPayable.toLocaleString()}</strong></td>
+      </tr>
+    `;
+  });
+
+  tableHtml += `
+        </tbody>
+      </table>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 10px 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 13px;">
+      <span style="font-weight: 700; color: #166534;">ℹ️ Total Estimated Faculty Payable (Conducted Sessions)</span>
+      <span style="font-size: 1.1rem; font-weight: 800; color: #14532d;">₹${totalPayout.toLocaleString()}</span>
+    </div>
+  `;
+
+  container.innerHTML = tableHtml;
+}
+
+function renderAssessmentsReport(assessments) {
+  const container = document.getElementById('report-assessments-stats');
+  if (!container) return;
+  if (!assessments || assessments.length === 0) {
+    container.innerHTML = renderEmptyState({ icon: '📝', title: 'No Assessments Scheduled', message: 'No academic assessments recorded.' });
+    return;
+  }
+  const completed = assessments.filter(a => a.status === 'Completed').length;
+  const pending = assessments.filter(a => a.status === 'Pending' || a.status === 'Scheduled').length;
+  
+  let html = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+      <div style="background: #f0f9ff; padding: 10px 12px; border-radius: 6px; border: 1px solid #bae6fd;">
+        <span style="font-size: 11px; font-weight: 700; color: #0369a1; text-transform: uppercase;">Completed Assessments</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #0c4a6e;">${completed}</div>
+      </div>
+      <div style="background: #fff7ed; padding: 10px 12px; border-radius: 6px; border: 1px solid #fed7aa;">
+        <span style="font-size: 11px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Upcoming / Scheduled</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #7c2d12;">${pending}</div>
+      </div>
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+function renderFollowupsReport(followups) {
+  const container = document.getElementById('report-followups-stats');
+  if (!container) return;
+  if (!followups || followups.length === 0) {
+    container.innerHTML = renderEmptyState({ icon: '✅', title: 'No Priority Follow-ups', message: 'No active follow-up actions.' });
+    return;
+  }
+  const pending = followups.filter(f => f.status === 'Pending').length;
+  const completed = followups.filter(f => f.status === 'Completed').length;
+  const highPriority = followups.filter(f => f.priority === 'High').length;
+
+  let html = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+      <div style="background: #fff7ed; padding: 10px 12px; border-radius: 6px; border: 1px solid #fed7aa;">
+        <span style="font-size: 11px; font-weight: 700; color: #c2410c; text-transform: uppercase;">Pending Actions</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #7c2d12;">${pending}</div>
+      </div>
+      <div style="background: #f0fdf4; padding: 10px 12px; border-radius: 6px; border: 1px solid #bbf7d0;">
+        <span style="font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase;">Completed Actions</span>
+        <div style="font-size: 1.3rem; font-weight: 800; color: #14532d;">${completed}</div>
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 10px; background: #ffffff; border-radius: 4px; border: 1px solid #e2e8f0;">
+      <span>High Priority Action Items</span><span class="badge badge-danger">${highPriority}</span>
+    </div>
+  `;
+  container.innerHTML = html;
+}
+
+function renderPackageRenewalReport(endingPackages) {
+  const container = document.getElementById('report-package-renewal-stats');
+  if (!container) return;
+  if (!endingPackages || endingPackages.length === 0) {
+    container.innerHTML = `
+      <div class="designed-empty-state" style="padding: 18px 16px;">
+        <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
+        <div style="font-size: 13px; font-weight: 700; color: #0f172a;">All Student Packages Healthy</div>
+        <div style="font-size: 12px; color: #64748b;">No active students currently have remaining classes <= 3.</div>
+      </div>
+    `;
+    return;
+  }
+
+  let tableHtml = `
+    <div class="table-wrapper">
+      <table class="data-table" style="font-size: 12px;">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Grade</th>
+            <th>Program</th>
+            <th>Completed / Total</th>
+            <th>Remaining Classes</th>
+            <th>Renewal Status</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  endingPackages.forEach(s => {
+    const regNo = s.register_number || s.register_no || `MM-2026-${s.id}`;
+    const total = s.total_classes || 24;
+    const completed = s.completed_classes || 0;
+    const remaining = s.remaining_classes !== undefined ? s.remaining_classes : Math.max(0, total - completed);
+    const renewalStatus = s.renewal_status || 'Pending';
+
+    let badgeClass = 'badge-warning';
+    if (renewalStatus === 'Renewed') badgeClass = 'badge-success';
+    else if (renewalStatus === 'Churned') badgeClass = 'badge-danger';
+
+    tableHtml += `
+      <tr>
+        <td><strong>${escapeHTML(s.name)}</strong> <span style="font-size:11px; color:var(--primary); font-family:monospace;">[${escapeHTML(regNo)}]</span></td>
+        <td>${escapeHTML(s.grade)}</td>
+        <td>${escapeHTML(s.program)}</td>
+        <td>${completed} / ${total}</td>
+        <td><strong style="color: ${remaining <= 1 ? '#ef4444' : '#f59e0b'};">${remaining} classes left</strong></td>
+        <td><span class="badge ${badgeClass}">${escapeHTML(renewalStatus)}</span></td>
+      </tr>
+    `;
+  });
+
+  tableHtml += `
+        </tbody>
+      </table>
+    </div>
+  `;
+  container.innerHTML = tableHtml;
 }
 
 // MODAL HANDLERS
@@ -3570,36 +4006,74 @@ async function handleCreateSSCSubmit(e) {
 }
 
 // DYNAMIC SUBJECT & FACULTY ROW PAIRINGS
-function addRegisterSubjectRow(subject = 'Mathematics', facultyId = '') {
+function addRegisterSubjectRow(subject = 'Mathematics', facultyId = '', paymentPerHour = 500) {
   const container = document.getElementById('rs-subjects-container');
   if (!container) return;
   const rowId = 'rs-sub-row-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
   
   let facultyOptions = '<option value="">Select Faculty...</option>';
   cachedFaculty.forEach(f => {
-    const sel = (f.id == facultyId) ? 'selected' : '';
-    facultyOptions += `<option value="${f.id}" data-phone="${escapeHTML(f.phone || '')}" ${sel}>${escapeHTML(f.name)} (${escapeHTML(f.subject)})</option>`;
+    const sel = (String(f.id) === String(facultyId)) ? 'selected' : '';
+    const subjectsLabel = Array.isArray(f.subjects) ? f.subjects.join(', ') : (f.subjects || '');
+    facultyOptions += `<option value="${f.id}" data-name="${escapeHTML(f.name)}" data-phone="${escapeHTML(f.phone || '')}" ${sel}>${escapeHTML(f.name)} (${escapeHTML(subjectsLabel)})</option>`;
   });
 
   const rowHTML = `
-    <div id="${rowId}" class="rs-subject-row" style="display: flex; gap: 8px; align-items: center; background: #F8FAFC; padding: 8px 10px; border-radius: 6px; border: 1px solid #E2E8F0;">
-      <select class="sub-name" style="flex: 1;" required>
-        <option value="Mathematics" ${subject==='Mathematics'?'selected':''}>Mathematics</option>
-        <option value="Science" ${subject==='Science'?'selected':''}>Science</option>
-        <option value="English" ${subject==='English'?'selected':''}>English</option>
-        <option value="Physics" ${subject==='Physics'?'selected':''}>Physics</option>
-        <option value="Chemistry" ${subject==='Chemistry'?'selected':''}>Chemistry</option>
-        <option value="Biology" ${subject==='Biology'?'selected':''}>Biology</option>
-        <option value="Social Studies" ${subject==='Social Studies'?'selected':''}>Social Studies</option>
-      </select>
-      <select class="sub-faculty" style="flex: 1.2;" onchange="updateFacultyPhonePreview(this)" required>
-        ${facultyOptions}
-      </select>
-      <span class="faculty-phone-preview" style="font-size: 11px; font-weight: 700; color: var(--primary); white-space: nowrap; min-width: 90px;"></span>
-      <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('${rowId}').remove()" title="Remove Subject">✕</button>
+    <div id="${rowId}" class="rs-subject-row" style="background: #F8FAFC; padding: 12px 14px; border-radius: 8px; border: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr 40px; gap: 10px; align-items: center;" class="faculty-row-grid">
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Subject *</label>
+          <select class="sub-name form-control" required>
+            <option value="Mathematics" ${subject==='Mathematics'?'selected':''}>Mathematics</option>
+            <option value="Science" ${subject==='Science'?'selected':''}>Science</option>
+            <option value="English" ${subject==='English'?'selected':''}>English</option>
+            <option value="Physics" ${subject==='Physics'?'selected':''}>Physics</option>
+            <option value="Chemistry" ${subject==='Chemistry'?'selected':''}>Chemistry</option>
+            <option value="Biology" ${subject==='Biology'?'selected':''}>Biology</option>
+            <option value="Social Studies" ${subject==='Social Studies'?'selected':''}>Social Studies</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Faculty *</label>
+          <select class="sub-faculty form-control" onchange="updateFacultyPhonePreview(this)" required>
+            ${facultyOptions}
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Payment / Hour *</label>
+          <div style="display: flex; align-items: center; position: relative;">
+            <span style="position: absolute; left: 10px; font-weight: 800; color: #64748b; font-size: 13px;">₹</span>
+            <input type="number" class="sub-payment form-control" value="${paymentPerHour}" min="0" step="50" style="padding-left: 24px;" required placeholder="500">
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; align-self: flex-end; margin-bottom: 2px;">
+          <button type="button" class="btn btn-sm btn-outline" onclick="removeFacultyRow('${rowId}')" title="Remove Row" style="color: var(--danger-text); border-color: #fca5a5;">✕</button>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px dashed #cbd5e1;">
+        <span class="faculty-phone-preview">📞 Contact: Select a faculty above</span>
+        <span style="font-weight: 600; color: #0284c7;">Internal payout rate calculation</span>
+      </div>
     </div>
   `;
   container.insertAdjacentHTML('beforeend', rowHTML);
+
+  const newlyAddedRow = document.getElementById(rowId);
+  if (newlyAddedRow) {
+    const selectElem = newlyAddedRow.querySelector('.sub-faculty');
+    if (selectElem && selectElem.value) updateFacultyPhonePreview(selectElem);
+  }
+}
+
+function removeFacultyRow(rowId) {
+  const container = document.getElementById('rs-subjects-container');
+  if (!container) return;
+  const rows = container.querySelectorAll('.rs-subject-row');
+  if (rows.length <= 1) {
+    alert('At least one faculty assignment row is required for registration.');
+    return;
+  }
+  document.getElementById(rowId)?.remove();
 }
 
 function addPackageSubjectRow(subject = 'Mathematics', facultyId = '') {
@@ -3610,7 +4084,7 @@ function addPackageSubjectRow(subject = 'Mathematics', facultyId = '') {
   let facultyOptions = '<option value="">Select Faculty...</option>';
   cachedFaculty.forEach(f => {
     const sel = (f.id == facultyId) ? 'selected' : '';
-    facultyOptions += `<option value="${f.id}" data-phone="${escapeHTML(f.phone || '')}" ${sel}>${escapeHTML(f.name)} (${escapeHTML(f.subject)})</option>`;
+    facultyOptions += `<option value="${f.id}" data-phone="${escapeHTML(f.phone || '')}" ${sel}>${escapeHTML(f.name)} (${escapeHTML(f.subjects || f.subject)})</option>`;
   });
 
   const rowHTML = `
@@ -3637,9 +4111,11 @@ function addPackageSubjectRow(subject = 'Mathematics', facultyId = '') {
 function updateFacultyPhonePreview(selectElem) {
   const selectedOpt = selectElem.options[selectElem.selectedIndex];
   const phone = selectedOpt ? selectedOpt.getAttribute('data-phone') : '';
-  const previewSpan = selectElem.parentElement.querySelector('.faculty-phone-preview');
+  const name = selectedOpt ? selectedOpt.getAttribute('data-name') : '';
+  const card = selectElem.closest('.rs-subject-row') || selectElem.closest('.ap-subject-row');
+  const previewSpan = card ? card.querySelector('.faculty-phone-preview') : null;
   if (previewSpan) {
-    previewSpan.innerText = phone ? `📞 ${phone}` : '';
+    previewSpan.innerText = phone ? `📞 Contact: ${phone} (${name})` : '📞 Contact: Select a faculty above';
   }
 }
 
@@ -3657,40 +4133,130 @@ function openRegisterStudentModal() {
 async function handleRegisterStudentSubmit(e) {
   e.preventDefault();
 
+  const name = document.getElementById('rs-name').value.trim();
+  const grade = document.getElementById('rs-grade').value;
+  const preferredLanguage = document.getElementById('rs-preferred-language').value;
+  const parentName = document.getElementById('rs-parent-name').value.trim();
+  const parentPhone = document.getElementById('rs-parent-phone').value.trim();
+  const program = document.getElementById('rs-program').value;
+
+  if (!name || !grade || !preferredLanguage || !parentName || !parentPhone || !program) {
+    alert('Please complete all required fields (*).');
+    return;
+  }
+
   const subjectRows = document.querySelectorAll('#rs-subjects-container .rs-subject-row');
+  if (subjectRows.length === 0) {
+    alert('Please add at least one faculty assignment row.');
+    return;
+  }
+
   const subjects = [];
-  subjectRows.forEach(row => {
+  const facultyAssignments = [];
+  const seenSubjects = new Set();
+  let hasValidAssignment = false;
+
+  for (const row of subjectRows) {
     const subName = row.querySelector('.sub-name')?.value;
-    const facId = row.querySelector('.sub-faculty')?.value;
-    if (subName && facId) {
-      subjects.push({ subject: subName, faculty_id: facId });
+    const facSelect = row.querySelector('.sub-faculty');
+    const facId = facSelect?.value;
+    const facOpt = facSelect?.options[facSelect.selectedIndex];
+    const facName = facOpt ? facOpt.getAttribute('data-name') || '' : '';
+    const facPhone = facOpt ? facOpt.getAttribute('data-phone') || '' : '';
+    const paymentVal = parseFloat(row.querySelector('.sub-payment')?.value || '0');
+
+    if (!subName || !facId) {
+      alert('Please select a valid subject and faculty for each row.');
+      return;
     }
-  });
+    if (isNaN(paymentVal) || paymentVal < 0) {
+      alert('Faculty payment per hour must be a valid non-negative number (>= 0).');
+      return;
+    }
+    if (seenSubjects.has(subName)) {
+      alert(`Duplicate subject '${subName}' found. Each subject should be assigned to one primary faculty.`);
+      return;
+    }
+    seenSubjects.add(subName);
+
+    subjects.push({
+      subject: subName,
+      faculty_id: facId,
+      faculty_name: facName,
+      faculty_phone: facPhone,
+      payment_per_hour: paymentVal
+    });
+
+    facultyAssignments.push({
+      subject: subName,
+      facultyId: facId,
+      facultyName: facName,
+      facultyContact: facPhone,
+      paymentPerHour: paymentVal
+    });
+
+    hasValidAssignment = true;
+  }
+
+  if (!hasValidAssignment) {
+    alert('Please provide at least one complete faculty assignment.');
+    return;
+  }
+
+  const primaryFac = facultyAssignments[0];
 
   const data = {
-    name: document.getElementById('rs-name').value,
-    grade: document.getElementById('rs-grade').value,
-    board: document.getElementById('rs-board').value,
-    school: document.getElementById('rs-school').value,
-    preferred_language: document.getElementById('rs-preferred-language').value,
-    parent_name: document.getElementById('rs-parent-name').value,
-    parent_phone: document.getElementById('rs-parent-phone').value,
-    student_phone: document.getElementById('rs-student-phone').value,
-    program: document.getElementById('rs-program').value,
-    session_package: document.getElementById('rs-package').value,
-    assigned_ssc_id: document.getElementById('rs-ssc-id').value || null,
+    name: name,
+    grade: grade,
+    board: document.getElementById('rs-board')?.value || 'CBSE',
+    school: document.getElementById('rs-school')?.value.trim() || '',
+    preferred_language: preferredLanguage,
+    parent_name: parentName,
+    parent_phone: parentPhone,
+    parent_email: document.getElementById('rs-parent-email')?.value.trim() || '',
+    preferred_communication: document.getElementById('rs-comm-method')?.value || 'WhatsApp',
+    student_phone: document.getElementById('rs-student-phone')?.value.trim() || '',
+    program: program,
+    session_package: parseInt(document.getElementById('rs-package')?.value || '24', 10),
+    total_classes: parseInt(document.getElementById('rs-package')?.value || '24', 10),
+    completed_classes: 0,
+    remaining_classes: parseInt(document.getElementById('rs-package')?.value || '24', 10),
+    enrollment_date: document.getElementById('rs-enrollment-date')?.value || new Date().toISOString().split('T')[0],
+    start_date: document.getElementById('rs-start-date')?.value || new Date().toISOString().split('T')[0],
+    assigned_ssc_id: document.getElementById('rs-ssc-id')?.value || null,
+    academic_notes: document.getElementById('rs-notes')?.value.trim() || '',
     subjects: subjects,
-    faculty_id: subjects.length > 0 ? subjects[0].faculty_id : null
+    facultyAssignments: facultyAssignments,
+    primary_faculty_name: primaryFac ? primaryFac.facultyName : '',
+    primary_faculty_phone: primaryFac ? primaryFac.facultyContact : '',
+    faculty_id: primaryFac ? primaryFac.facultyId : null,
+    payment_per_hour: primaryFac ? primaryFac.paymentPerHour : 500,
+    status: 'Active'
   };
 
-  const res = await fetchAPI('/api/students', 'POST', data);
-  if (res && res.success) {
-    closeModal('modal-register-student');
-    alert(`Student registered successfully! Register Number: ${res.register_no}`);
-    refreshCurrentView();
-    loadStudentsListForDropdowns();
-  } else {
-    alert(res?.error || 'Failed to register student.');
+  const submitBtn = document.getElementById('rs-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Registering Student...';
+  }
+
+  try {
+    const res = await fetchAPI('/api/students', 'POST', data);
+    if (res && res.success) {
+      closeModal('modal-register-student');
+      alert(`Student registered successfully! Register Number: ${res.register_number || res.register_no || ('MM-2026-' + res.id)}`);
+      refreshCurrentView();
+      loadStudentsListForDropdowns();
+    } else {
+      alert(res?.error || 'Failed to register student.');
+    }
+  } catch (err) {
+    alert('Error registering student: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Register Student';
+    }
   }
 }
 

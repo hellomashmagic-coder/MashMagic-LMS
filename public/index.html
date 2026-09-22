@@ -1066,26 +1066,62 @@
 
         <!-- UNASSIGNED STUDENTS VIEW -->
         <section id="view-unassigned-students" class="page-view">
-          <div class="card margin-bottom-lg" style="background-color: var(--warning-light); border-color: var(--warning-text);">
-            <h3 style="color: var(--warning-text);">⚠️ Unassigned Students Notice</h3>
-            <p style="font-size: 13px; color: var(--warning-text);">These students do not have an assigned Student Success Coordinator. Assign them immediately so their timetable and classes can be managed.</p>
+          <!-- Guidance & Context Header Card -->
+          <div class="card margin-bottom-lg" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #cbd5e1; border-left: 4px solid var(--primary); padding: 18px 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <h3 style="margin: 0 0 4px 0; color: #0f172a; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                  <span>⚠️ Unassigned Students</span>
+                  <span class="badge badge-warning" id="unassigned-badge-count">0 Awaiting Allocation</span>
+                </h3>
+                <p style="margin: 0; font-size: 13px; color: #475569; max-width: 750px;">
+                  These students need an SSC assignment before classes, timetable and ongoing academic support can be managed.
+                </p>
+              </div>
+              <button class="btn btn-primary" onclick="openRegisterStudentModal()">+ Register Student</button>
+            </div>
           </div>
-          <div class="card table-card">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Student Name</th>
-                  <th>Grade</th>
-                  <th>Program</th>
-                  <th>Parent Name</th>
-                  <th>Parent Phone</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="unassigned-table-body">
-                <!-- Rendered dynamically -->
-              </tbody>
-            </table>
+
+          <!-- Main Grid: Unassigned Table (Left/Main) & Enrollment Guidance Checklist (Right/Side) -->
+          <div class="unassigned-page-grid">
+            <!-- Unassigned Students Table -->
+            <div class="card table-card" style="margin: 0;">
+              <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <h4 style="margin:0; font-size: 1rem; font-weight: 700; color: #0f172a;">Student Allocation Queue</h4>
+                <span style="font-size: 12px; color: #64748b;" id="unassigned-table-count">Showing unassigned active students</span>
+              </div>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Grade</th>
+                      <th>Program</th>
+                      <th>Parent</th>
+                      <th>Parent Phone</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="unassigned-table-body">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Enrollment Operational Checklist Card -->
+            <div class="card checklist-card" style="padding: 20px; margin: 0; background: #ffffff; border: 1px solid #cbd5e1; height: fit-content;">
+              <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <h4 style="margin: 0 0 4px 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                  <span>📋 Enrollment Checklist</span>
+                </h4>
+                <p style="margin: 0; font-size: 12px; color: #64748b;">Complete these items before the student's first class.</p>
+              </div>
+              <div id="enrollment-checklist-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Dynamic checklist items -->
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1740,91 +1776,160 @@
 
         <!-- REPORTS VIEW -->
         <section id="view-reports" class="page-view">
-          <!-- Operational KPI Summary Strip -->
-          <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px;">
+          <!-- Operational Reporting Control Toolbar -->
+          <div class="card margin-bottom-lg" style="padding: 16px 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <h3 style="margin: 0 0 2px 0; color: #0f172a; font-size: 1.15rem; font-weight: 800;">Operational Reports</h3>
+                <p style="margin: 0; font-size: 12px; color: #64748b;">Student, academic, class, faculty and service performance overview</p>
+              </div>
+              
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <label style="font-size: 12px; font-weight: 700; color: #475569;">Period:</label>
+                  <select id="rpt-filter-period" class="form-control" style="width: auto; padding: 6px 10px; font-size: 13px;" onchange="loadReports()">
+                    <option value="ALL" selected>All Time</option>
+                    <option value="TODAY">Today</option>
+                    <option value="THIS_WEEK">This Week</option>
+                    <option value="THIS_MONTH">This Month</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <label style="font-size: 12px; font-weight: 700; color: #475569;">SSC:</label>
+                  <select id="rpt-filter-ssc" class="form-control" style="width: auto; padding: 6px 10px; font-size: 13px;" onchange="loadReports()">
+                    <option value="">All SSCs</option>
+                  </select>
+                </div>
+
+                <button class="btn btn-outline" onclick="loadReports()" style="padding: 6px 12px; font-size: 13px;">🔄 Refresh Data</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- C2: Top KPI Strip -->
+          <div class="kpi-grid-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px;">
             <div class="card stat-card" style="padding: 14px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Active Students</span>
               <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 4px;" id="rpt-kpi-students">0</div>
             </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #1e40af; letter-spacing: 0.5px;">New Enrollments</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #1e3a8a; margin-top: 4px;" id="rpt-kpi-new-students">0</div>
+            </div>
             <div class="card stat-card" style="padding: 14px 16px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Total Classes</span>
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Classes Scheduled</span>
               <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 4px;" id="rpt-kpi-classes">0</div>
             </div>
             <div class="card stat-card" style="padding: 14px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Conducted</span>
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Classes Conducted</span>
               <div style="font-size: 1.6rem; font-weight: 800; color: #14532d; margin-top: 4px;" id="rpt-kpi-conducted">0</div>
             </div>
             <div class="card stat-card" style="padding: 14px 16px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px;">
               <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #7e22ce; letter-spacing: 0.5px;">Rescheduled</span>
               <div style="font-size: 1.6rem; font-weight: 800; color: #581c87; margin-top: 4px;" id="rpt-kpi-rescheduled">0</div>
             </div>
-            <div class="card stat-card" style="padding: 14px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #1e40af; letter-spacing: 0.5px;">Assessments</span>
-              <div style="font-size: 1.6rem; font-weight: 800; color: #1e3a8a; margin-top: 4px;" id="rpt-kpi-assessments">0</div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #0369a1; letter-spacing: 0.5px;">Assessments Done</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #0c4a6e; margin-top: 4px;" id="rpt-kpi-assessments">0</div>
             </div>
             <div class="card stat-card" style="padding: 14px 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #c2410c; letter-spacing: 0.5px;">Follow-ups</span>
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #c2410c; letter-spacing: 0.5px;">Pending Follow-ups</span>
               <div style="font-size: 1.6rem; font-weight: 800; color: #7c2d12; margin-top: 4px;" id="rpt-kpi-followups">0</div>
+            </div>
+            <div class="card stat-card" style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;">
+              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #b91c1c; letter-spacing: 0.5px;">Packages Ending</span>
+              <div style="font-size: 1.6rem; font-weight: 800; color: #7f1d1d; margin-top: 4px;" id="rpt-kpi-renewals">0</div>
             </div>
           </div>
 
-          <!-- Reports Grid Sections -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-            <!-- SECTION 1: Student Activity & Retention -->
-            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+          <!-- Grid of Report Sections (2 Columns Desktop) -->
+          <div class="reports-section-grid">
+            
+            <!-- C3: Student Enrollment & Activity -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
-                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                    <span>🎓 Student Activity & Retention</span>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>🎓 Student Enrollment & Activity</span>
                   </h4>
-                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Overview of student enrollment and status</p>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Breakdown by status, grade, program, and SSC allocation</p>
                 </div>
-                <span class="badge badge-info" style="font-size: 0.72rem;">Summary</span>
+                <span class="badge badge-info">Students</span>
               </div>
               <div id="report-students-stats"></div>
             </div>
 
-            <!-- SECTION 2: Class Operations Breakdown -->
-            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <!-- C4: Class Operations Breakdown -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
-                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
                     <span>📅 Class Operations Breakdown</span>
                   </h4>
-                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Daily class completion, verification rates & status</p>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Class completion, wrap-up statuses, and delivery metrics</p>
                 </div>
-                <span class="badge badge-primary" style="font-size: 0.72rem;">Operations</span>
+                <span class="badge badge-primary">Operations</span>
               </div>
               <div id="report-classes-stats"></div>
             </div>
 
-            <!-- SECTION 3: Assessments & Performance -->
-            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <!-- C5: Faculty Assignment & Payment Report (Full Width) -->
+            <div class="card" style="grid-column: 1 / -1; padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
-                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                    <span>📝 Assessments & Performance</span>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>💼 Faculty Assignment & Operational Payout</span>
                   </h4>
-                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Scheduled exams and assessment completion</p>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Estimated faculty payout calculated strictly from verified conducted class session records</p>
                 </div>
-                <span class="badge badge-warning" style="font-size: 0.72rem;">Academic</span>
+                <span class="badge badge-success">Finance & Ops</span>
+              </div>
+              <div id="report-faculty-payout-stats"></div>
+            </div>
+
+            <!-- C6: Assessments & Academic Progress -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📝 Assessments & Progress</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Exams, evaluation completion, and student assessment metrics</p>
+                </div>
+                <span class="badge badge-warning">Academic</span>
               </div>
               <div id="report-assessments-stats"></div>
             </div>
 
-            <!-- SECTION 4: SSC Follow-up Operations -->
-            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <!-- C7: SSC Follow-up Operations -->
+            <div class="card" style="padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
               <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
                 <div>
-                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
                     <span>✅ SSC Follow-up Operations</span>
                   </h4>
-                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Resolution metrics for priority calls and reminders</p>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Priority calls, parent touchpoints, and pending tasks</p>
                 </div>
-                <span class="badge badge-success" style="font-size: 0.72rem;">Actions</span>
+                <span class="badge badge-outline">Service</span>
               </div>
               <div id="report-followups-stats"></div>
             </div>
+
+            <!-- C8: Package & Renewal Visibility (Full Width) -->
+            <div class="card" style="grid-column: 1 / -1; padding: 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 14px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📦 Package & Renewal Visibility</span>
+                  </h4>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #64748b;">Students nearing package exhaustion (&le; 3 classes remaining) and renewal tracking</p>
+                </div>
+                <span class="badge badge-danger">Retention</span>
+              </div>
+              <div id="report-package-renewal-stats"></div>
+            </div>
+
           </div>
         </section>
 
@@ -2066,104 +2171,162 @@
 
   <!-- 2. Register Student Modal (Academic Head & SSC) -->
   <div class="modal-overlay" id="modal-register-student">
-    <div class="modal" style="max-width: 620px;">
-      <div class="modal-header">
-        <h3>Register New Student</h3>
+    <div class="modal" style="max-width: 880px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 14px;">
+        <div>
+          <h3 style="margin:0; color:#0f172a; font-weight:800; font-size:1.25rem;">🎓 Register New Student</h3>
+          <p style="margin:2px 0 0 0; font-size:12px; color:#64748b;">Complete student profile, parent details, program enrollment, and faculty payout setup.</p>
+        </div>
         <button class="modal-close-btn" onclick="closeModal('modal-register-student')">✕</button>
       </div>
-      <form id="form-register-student" onsubmit="handleRegisterStudentSubmit(event)">
-        <div style="background: #F1F5F9; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #475569;">
-          ℹ️ <strong>Register Number</strong> will be automatically generated (e.g. <code>MM-2026-XXXX</code>).
+      
+      <form id="form-register-student" onsubmit="handleRegisterStudentSubmit(event)" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 20px;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #1e40af; display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+          <span>ℹ️</span> <strong>Register Number</strong> will be automatically generated (e.g. <code>MM-2026-XXXX</code>).
         </div>
 
-        <h4>Student Information</h4>
-        <div class="form-group">
-          <label>Student Name *</label>
-          <input type="text" id="rs-name" placeholder="Full Student Name" required>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Grade *</label>
-            <select id="rs-grade" class="form-control" required>
-              <option value="Grade 6">Grade 6</option>
-              <option value="Grade 7">Grade 7</option>
-              <option value="Grade 8" selected>Grade 8</option>
-              <option value="Grade 9">Grade 9</option>
-              <option value="Grade 10">Grade 10</option>
-            </select>
+        <!-- SECTION 1: STUDENT INFORMATION -->
+        <div class="form-section-box">
+          <h4 class="form-section-header"><span>1</span> Student Information</h4>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Student Name *</label>
+              <input type="text" id="rs-name" class="form-control" placeholder="Full Student Name" required>
+            </div>
+            <div class="form-group">
+              <label>Grade *</label>
+              <select id="rs-grade" class="form-control" required>
+                <option value="Grade 6">Grade 6</option>
+                <option value="Grade 7">Grade 7</option>
+                <option value="Grade 8" selected>Grade 8</option>
+                <option value="Grade 9">Grade 9</option>
+                <option value="Grade 10">Grade 10</option>
+                <option value="Grade 11">Grade 11</option>
+                <option value="Grade 12">Grade 12</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Board</label>
-            <input type="text" id="rs-board" class="form-control" value="CBSE" placeholder="CBSE/ICSE/IB">
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Board</label>
+              <select id="rs-board" class="form-control">
+                <option value="CBSE" selected>CBSE</option>
+                <option value="ICSE">ICSE</option>
+                <option value="IB">IB</option>
+                <option value="State Board">State Board</option>
+                <option value="IGCSE">IGCSE</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>School Name</label>
+              <input type="text" id="rs-school" class="form-control" placeholder="School Name">
+            </div>
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>School Name</label>
-            <input type="text" id="rs-school" class="form-control" placeholder="School Name">
-          </div>
-          <div class="form-group">
-            <label>Preferred Language *</label>
-            <select id="rs-preferred-language" class="form-control" required>
-              <option value="English" selected>English</option>
-              <option value="More English, Less Malayalam">More English, Less Malayalam</option>
-              <option value="More Malayalam, Less English">More Malayalam, Less English</option>
-              <option value="Malayalam">Malayalam</option>
-              <option value="Hindi">Hindi</option>
-              <option value="Tamil">Tamil</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Parent Name *</label>
-            <input type="text" id="rs-parent-name" class="form-control" placeholder="Parent Name" required>
-          </div>
-          <div class="form-group">
-            <label>Parent Phone *</label>
-            <input type="text" id="rs-parent-phone" class="form-control" placeholder="+919876543210" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Student Phone</label>
-          <input type="text" id="rs-student-phone" class="form-control" placeholder="Optional">
-        </div>
-
-        <hr class="divider">
-        <h4>Program & Enrollment Package</h4>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Program *</label>
-            <select id="rs-program" class="form-control" required>
-              <option value="Classmate 1-on-1">Classmate 1-on-1</option>
-              <option value="Intensive Academic Support">Intensive Academic Support</option>
-              <option value="Magic Mentor">Magic Mentor</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Package Sessions *</label>
-            <input type="number" id="rs-package" class="form-control" value="24" required min="1">
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Preferred Language *</label>
+              <select id="rs-preferred-language" class="form-control" required>
+                <option value="English" selected>English</option>
+                <option value="More English, Less Malayalam">More English, Less Malayalam</option>
+                <option value="More Malayalam, Less English">More Malayalam, Less English</option>
+                <option value="Malayalam">Malayalam</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Tamil">Tamil</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Student Phone</label>
+              <input type="text" id="rs-student-phone" class="form-control" placeholder="Optional student contact number">
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Assigned SSC</label>
-          <select id="rs-ssc-id" class="form-control"></select>
+        <!-- SECTION 2: PARENT / PRIMARY CONTACT -->
+        <div class="form-section-box">
+          <h4 class="form-section-header"><span>2</span> Parent / Primary Contact</h4>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Parent Name *</label>
+              <input type="text" id="rs-parent-name" class="form-control" placeholder="Full Parent / Guardian Name" required>
+            </div>
+            <div class="form-group">
+              <label>Parent Phone *</label>
+              <input type="text" id="rs-parent-phone" class="form-control" placeholder="+91 98765 43210" required>
+            </div>
+          </div>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Parent Email</label>
+              <input type="email" id="rs-parent-email" class="form-control" placeholder="parent@example.com">
+            </div>
+            <div class="form-group">
+              <label>Preferred Communication Method</label>
+              <select id="rs-comm-method" class="form-control">
+                <option value="WhatsApp" selected>WhatsApp</option>
+                <option value="Phone Call">Phone Call</option>
+                <option value="Email">Email</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <hr class="divider">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h4 style="margin:0;">Enrolled Subjects & Faculty Pairings</h4>
-          <button type="button" class="btn btn-sm btn-outline" onclick="addRegisterSubjectRow()">+ Add Subject</button>
-        </div>
-        
-        <div id="rs-subjects-container" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
-          <!-- Subject rows injected dynamically -->
+        <!-- SECTION 3: PROGRAM & ENROLLMENT -->
+        <div class="form-section-box">
+          <h4 class="form-section-header"><span>3</span> Program & Enrollment Details</h4>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Program *</label>
+              <select id="rs-program" class="form-control" required>
+                <option value="Classmate 1-on-1">Classmate 1-on-1</option>
+                <option value="Intensive Academic Support">Intensive Academic Support</option>
+                <option value="Magic Mentor">Magic Mentor</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Package Sessions *</label>
+              <input type="number" id="rs-package" class="form-control" value="24" required min="1" placeholder="e.g. 24">
+            </div>
+          </div>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Enrollment Date</label>
+              <input type="date" id="rs-enrollment-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Starting Date</label>
+              <input type="date" id="rs-start-date" class="form-control">
+            </div>
+          </div>
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label>Assigned SSC</label>
+              <select id="rs-ssc-id" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label>Academic / Initial Notes</label>
+              <input type="text" id="rs-notes" class="form-control" placeholder="Special requirements, goals, or notes">
+            </div>
+          </div>
         </div>
 
-        <div class="modal-footer">
+        <!-- SECTION 4: FACULTY ASSIGNMENT & PAYOUT -->
+        <div class="form-section-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h4 class="form-section-header" style="margin:0;"><span>4</span> Faculty Assignment & Payout</h4>
+              <p style="margin:2px 0 0 0; font-size:12px; color:#64748b;">Assign subject-specific faculty from directory and specify hourly payment rate.</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline" onclick="addRegisterSubjectRow()" style="font-weight:700;">+ Add Another Faculty</button>
+          </div>
+
+          <div id="rs-subjects-container" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Repeatable Faculty Assignment Rows -->
+          </div>
+        </div>
+
+        <div class="modal-footer" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 10px;">
           <button type="button" class="btn btn-outline" onclick="closeModal('modal-register-student')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Register Student</button>
+          <button type="submit" class="btn btn-primary" id="rs-submit-btn">Register Student</button>
         </div>
       </form>
     </div>

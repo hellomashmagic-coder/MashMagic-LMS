@@ -2121,3 +2121,77 @@ html, body {
     font-size: 12.5px;
   }
 }
+
+/* Phase AH-1 Academic Head Enrollment & Reports Improvement */
+.unassigned-page-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+.reports-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-section-box {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.form-section-header {
+  margin: 0 0 14px 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-section-header span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--primary);
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1024px) {
+  .unassigned-page-grid {
+    grid-template-columns: 1fr;
+  }
+  .reports-section-grid {
+    grid-template-columns: 1fr;
+  }
+  .reports-section-grid > div[style*="grid-column"] {
+    grid-column: span 1 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .faculty-row-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
