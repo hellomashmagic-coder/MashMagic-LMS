@@ -682,18 +682,42 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       return { sscs: sscs };
     }
 
-    // Faculty Directory
+    // Faculty Directory & Details
     if (endpoint.startsWith('/api/faculty')) {
       if (method === 'POST') {
+        const facCode = data.facultyCode || data.faculty_code || `FAC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
         const docRef = await addDoc(collection(db, 'faculties'), {
           ...data,
+          facultyCode: facCode,
           createdAt: new Date().toISOString()
         });
-        return { success: true, id: docRef.id };
+        return { success: true, id: docRef.id, faculty_code: facCode };
       }
+
+      if (method === 'PUT') {
+        const match = endpoint.match(/\/api\/faculty\/([^\?\/]+)/);
+        if (match && match[1]) {
+          const targetId = match[1];
+          await setDoc(doc(db, 'faculties', targetId), {
+            ...data,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          return { success: true, id: targetId };
+        }
+      }
+
       const snap = await getDocs(collection(db, 'faculties'));
       const faculties = snap.docs.map(doc => mapFacultyDoc(doc.id, doc.data()));
-      return { faculties: faculties };
+
+      // Single Faculty Lookup GET /api/faculty/:id
+      const match = endpoint.match(/\/api\/faculty\/([^\?\/]+)/);
+      if (match && match[1]) {
+        const targetId = match[1];
+        const singleFaculty = faculties.find(f => String(f.id) === String(targetId) || String(f.faculty_id) === String(targetId) || String(f.faculty_code) === String(targetId)) || null;
+        return { faculty: singleFaculty };
+      }
+
+      return { faculties: faculties, faculty: faculties };
     }
 
     // Students
@@ -971,14 +995,17 @@ async function loadCommonDropdowns() {
 
 async function loadFacultyList() {
   const res = await fetchAPI('/api/faculty');
-  if (res && res.faculty) {
-    cachedFaculty = res.faculty;
+  const facList = res ? (res.faculties || res.faculty || []) : [];
+  if (facList.length > 0 || res) {
+    cachedFaculty = facList;
+    cachedFaculties = facList;
     ['sc-faculty-id', 'sa-faculty-id', 'rs-faculty-id', 'classes-faculty-filter'].forEach(id => {
       const elem = document.getElementById(id);
       if (elem) {
         let html = id === 'classes-faculty-filter' ? '<option value="">All Faculty</option>' : '<option value="">Select Faculty...</option>';
-        res.faculty.forEach(f => {
-          html += `<option value="${f.id}">${escapeHTML(f.name)} (${escapeHTML(f.subjects)})</option>`;
+        facList.forEach(f => {
+          const subText = Array.isArray(f.subjects) ? f.subjects.join(', ') : (f.subjects || '');
+          html += `<option value="${f.id}">${escapeHTML(f.name)}${subText ? ` (${escapeHTML(subText)})` : ''}</option>`;
         });
         elem.innerHTML = html;
       }
@@ -4589,15 +4616,19 @@ async function loadFacultyDirectory() {
     return;
   }
 
-  if (!res || !res.faculty) return;
+  if (!res || (!res.faculties && !res.faculty)) return;
 
-  const facultyList = res.faculty;
+  const facultyList = res.faculties || res.faculty || [];
+  cachedFaculty = facultyList;
+  cachedFaculties = facultyList;
   const activeFacultyCount = facultyList.filter(f => (f.status || 'Active') === 'Active').length;
   const totalStudentsCount = facultyList.reduce((acc, f) => acc + (parseInt(f.active_students) || 0), 0);
 
   const allSubjSet = new Set();
   facultyList.forEach(f => {
-    const subs = (f.subjects || '').split(',').map(s => s.trim()).filter(Boolean);
+    const subs = Array.isArray(f.subjects) 
+      ? f.subjects.map(s => (typeof s === 'object' ? s.subject || s.name || String(s) : String(s))).filter(Boolean)
+      : (typeof f.subjects === 'string' ? f.subjects.split(',').map(s => s.trim()).filter(Boolean) : []);
     subs.forEach(s => allSubjSet.add(s));
   });
   const subjectsCount = allSubjSet.size || (facultyList.length > 0 ? allSubjSet.size : 0);
@@ -4840,17 +4871,23 @@ async function openEditFacultyModal(facultyId) {
   document.getElementById('fac-phone').value = f.phone || '';
   document.getElementById('fac-status').value = f.status || 'Active';
 
-  const subList = (f.subjects || '').split(',').map(s => s.trim());
+  const subList = Array.isArray(f.subjects)
+    ? f.subjects.map(s => (typeof s === 'object' ? s.subject || s.name || String(s) : String(s))).map(s => s.trim())
+    : (typeof f.subjects === 'string' ? f.subjects.split(',').map(s => s.trim()) : []);
   document.querySelectorAll('input[name="fac_subject"]').forEach(cb => {
     cb.checked = subList.includes(cb.value);
   });
 
-  const sylList = (f.syllabuses || '').split(',').map(s => s.trim());
+  const sylList = Array.isArray(f.syllabuses)
+    ? f.syllabuses.map(s => String(s).trim())
+    : (typeof f.syllabuses === 'string' ? f.syllabuses.split(',').map(s => s.trim()) : []);
   document.querySelectorAll('input[name="fac_syllabus"]').forEach(cb => {
     cb.checked = sylList.includes(cb.value);
   });
 
-  const grdList = (f.grades || '').split(',').map(s => s.trim());
+  const grdList = Array.isArray(f.grades)
+    ? f.grades.map(g => String(g).trim())
+    : (typeof f.grades === 'string' ? f.grades.split(',').map(s => s.trim()) : []);
   document.querySelectorAll('input[name="fac_grade"]').forEach(cb => {
     cb.checked = grdList.includes(cb.value);
   });
