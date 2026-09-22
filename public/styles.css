@@ -2196,7 +2196,7 @@ html, body {
 }
 
 /* ==========================================================================
-   PREMIUM MODERN UI/UX DESIGN SYSTEM UPGRADE
+   PREMIUM MODERN UI/UX DESIGN SYSTEM & MOBILE RESPONSIVE ENGINE
    ========================================================================== */
 
 /* 1. Global Elevation & Surface System */
@@ -2210,25 +2210,27 @@ html, body {
   --radius-squircle: 14px;
 }
 
-/* 2. Top Header Polish */
-.top-header {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-  backdrop-filter: blur(12px) saturate(180%) !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
-}
+/* 2. Desktop Top Header (Scoped to > 768px) */
+@media (min-width: 769px) {
+  .top-header {
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(12px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  }
 
-.header-title h1 {
-  font-size: 21px !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.02em !important;
-  color: #0F172A !important;
-}
+  .header-title h1 {
+    font-size: 21px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    color: #0F172A !important;
+  }
 
-.header-title p {
-  font-size: 12.5px !important;
-  color: #64748B !important;
-  font-weight: 500 !important;
+  .header-title p {
+    font-size: 12.5px !important;
+    color: #64748B !important;
+    font-weight: 500 !important;
+  }
 }
 
 /* 3. Modern Sidebar Navigation */
@@ -2418,5 +2420,164 @@ html, body {
   border-color: #4F46E5 !important;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
 }
+
+/* 9. COMPREHENSIVE MOBILE RESPONSIVE ENGINE (< 768px) */
+@media (max-width: 768px) {
+  .top-header {
+    display: none !important;
+  }
+
+  .mobile-top-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 56px !important;
+    background-color: #13172B !important;
+    color: #FFFFFF !important;
+    padding: 0 16px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 500 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .content-body {
+    padding: 16px 12px 84px 12px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    top: 0;
+    bottom: 0;
+    z-index: 950 !important;
+    width: 260px !important;
+  }
+
+  .sidebar.mobile-drawer-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Force All Multi-Column Grid & Flex Layouts into 1-Column Stacks on Mobile */
+  .kpi-grid,
+  .kpi-grid-4,
+  .directory-summary-grid,
+  .report-grid-2col,
+  .reports-section-grid,
+  .form-grid-2col,
+  .form-row-2col,
+  .info-grid-2col,
+  .unassigned-page-grid,
+  .class-cards-grid,
+  div[style*="display: grid"],
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  div[style*="display: flex"][style*="gap: 20px"],
+  div[style*="display: flex"][style*="gap: 16px"],
+  div[style*="display: flex"][style*="gap: 24px"],
+  .control-bar,
+  .table-controls,
+  .class-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .search-box {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .control-bar-group,
+  .filter-pills-container {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Touch Scrollable Data Tables */
+  .data-table,
+  table.data-table,
+  .table-wrapper,
+  .table-responsive,
+  .timetable-container,
+  .monthly-calendar-container {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Fixed Bottom Mobile Navigation Bar */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 60px !important;
+    background-color: #FFFFFF !important;
+    border-top: 1px solid #E2E8F0 !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+    z-index: 1000 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+  }
+
+  .mobile-bottom-nav-item,
+  .bottom-nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    height: 100% !important;
+    color: #64748B !important;
+    text-decoration: none !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    gap: 2px !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+  }
+
+  .mobile-bottom-nav-item.active,
+  .bottom-nav-item.active {
+    color: #4F46E5 !important;
+    font-weight: 700 !important;
+  }
+
+  /* Modals & Slide-over Drawers on Mobile */
+  .modal {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 10px auto !important;
+    max-height: 90vh !important;
+    border-radius: 14px !important;
+  }
+
+  .student-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
 
 
